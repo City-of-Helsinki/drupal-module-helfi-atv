@@ -1,0 +1,4 @@
+services:
+  helfi_atv.atv_service:
+    class: Drupal\helfi_atv\AtvService
+    arguments: ['@http_client']
