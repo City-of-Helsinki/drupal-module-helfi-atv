@@ -89,7 +89,17 @@ class AtvService {
 
   }
 
-  public function patchDocument() {
+  public function patchDocument($id,$document) {
+    $patchUrl = $this->baseUrl . $id;
+
+    $resp = $this->httpClient->request(
+      'PATCH',
+      $patchUrl,
+      [
+        'headers' => $this->headers,
+        'body' => JSON::encode((object) $document),
+      ]
+    );
 
   }
 
