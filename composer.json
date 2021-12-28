@@ -1,0 +1,13 @@
+{
+    "name": "drupal/helfi_atv",
+    "description": "ATV integration module",
+    "type": "drupal-module",
+    "license": "GPL-2.0-or-later",
+    "minimum-stability": "dev",
+    "autoload": {
+        "psr-4": {
+            "Drupal\\HelfiAtv\\": "src/"
+        }
+    },
+    "require": {}
+}
