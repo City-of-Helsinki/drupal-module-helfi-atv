@@ -70,7 +70,12 @@ class AtvService {
       ]
     );
 
-    $responseData = JSON::decode($resp->getBody()->getContents());
+    $responseData = JSON::decode($resp);
+
+    // if no data for some reason, don't fail, return empty array instead.
+    if ($responseData == NULL) {
+      return [];
+    }
 
     return $responseData['results'];
 
@@ -136,7 +141,7 @@ class AtvService {
    * @param array $document
    *   Document data to update.
    *
-   * @return bool
+   * @return bool|null
    *   If PATCH succeeded?
    */
   public function patchDocument(string $id, array $document): ?bool {
@@ -184,7 +189,7 @@ class AtvService {
    * @return bool|array
    *   Content or boolean if void.
    */
-  private function request(string $method, string $url, array $options) {
+  private function request(string $method, string $url, array $options): bool|array {
 
     try {
       $resp = $this->httpClient->request(
