@@ -73,7 +73,7 @@ class AtvService {
     $responseData = JSON::decode($resp);
 
     // if no data for some reason, don't fail, return empty array instead.
-    if ($responseData == NULL) {
+    if (!is_array($responseData)) {
       return [];
     }
 
