@@ -62,17 +62,17 @@ class AtvService {
    */
   public function searchDocuments(array $searchParams): array {
 
-    $resp = $this->request(
+    $url = $this->buildUrl($searchParams);
+
+    $responseData = $this->request(
       'GET',
-      $this->buildUrl($searchParams),
+      $url,
       [
         'headers' => $this->headers,
       ]
     );
 
-    $responseData = JSON::decode($resp);
-
-    // if no data for some reason, don't fail, return empty array instead.
+    // If no data for some reason, don't fail, return empty array instead.
     if (!is_array($responseData)) {
       return [];
     }
@@ -122,8 +122,38 @@ class AtvService {
    * @param string $id
    *   Document id.
    */
-  public function getDocument(string $id) {
+  public function getDocument(string $id): array {
 
+    $responseData = $this->request(
+      'GET',
+      $this->baseUrl . $id,
+      [
+        'headers' => $this->headers,
+      ]
+    );
+
+    // If no data for some reason, don't fail, return empty array instead.
+    if (!is_array($responseData)) {
+      return [];
+    }
+
+    return $responseData;
+  }
+
+  /**
+   * Parse malformed json.
+   *
+   * @param string $contentString
+   *   JSON to be checked.
+   *
+   * @return mixed
+   *   Decoded JSON array.
+   */
+  public function parseContent($contentString): mixed {
+    $replaced = str_replace("'", "\"", $contentString);
+    $replaced = str_replace("False", "false", $replaced);
+
+    return Json::decode($replaced);
   }
 
   /**
@@ -199,7 +229,12 @@ class AtvService {
       );
       if ($resp->getStatusCode() == 200) {
         if ($method == 'GET') {
-          return $resp->getBody()->getContents();
+          $bodyContents = $resp->getBody()->getContents();
+          if (is_string($bodyContents)) {
+            $bc = Json::decode($bodyContents);
+            return $bc;
+          }
+          return $bodyContents;
         }
         else {
           return TRUE;
