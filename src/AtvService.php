@@ -158,11 +158,42 @@ class AtvService {
     return Json::decode($replaced);
   }
 
+  protected function arrayToFormData($document) {
+    $retval = [];
+    foreach ($document as $key => $value) {
+      if (is_array($value)) {
+        $contents = Json::encode($value);
+      }
+      else {
+        $contents = $value;
+      }
+      $retval[$key] = [
+        'name' => $key,
+        'contents' => $contents,
+      ];
+    }
+    return $retval;
+  }
+
   /**
    * Save new document.
    */
-  public function postDocument() {
+  public function postDocument($document): bool|array {
+    $postUrl = $this->baseUrl;
 
+    $formData = $this->arrayToFormData($document);
+
+    $opts = [
+      'headers' => $this->headers,
+      // Form data.
+      'multipart' => $formData,
+    ];
+
+    return $this->request(
+      'POST',
+      $postUrl,
+      $opts
+    );
   }
 
   /**
@@ -181,11 +212,13 @@ class AtvService {
 
     $content = JSON::encode((object) $document);
 
+    $headers = array_merge($this->headers, ['Content-Type' => 'application/json']);
+
     return $this->request(
       'PATCH',
       $patchUrl,
       [
-        'headers' => $this->headers,
+        'headers' => $headers,
         'body' => $content,
       ]
     );
@@ -243,8 +276,7 @@ class AtvService {
         }
       }
       return FALSE;
-    }
-    catch (ServerException | GuzzleException $e) {
+    } catch (ServerException|GuzzleException $e) {
       // @todo error handler for ATV request
       return FALSE;
     }
