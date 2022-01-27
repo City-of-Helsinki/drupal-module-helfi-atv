@@ -2,6 +2,7 @@
 
 namespace Drupal\helfi_atv;
 
+use Drupal\Core\Logger\LoggerChannelFactory;
 use GuzzleHttp\ClientInterface;
 use Drupal\Component\Serialization\Json;
 use GuzzleHttp\Exception\GuzzleException;
@@ -34,13 +35,21 @@ class AtvService {
   private string $baseUrl;
 
   /**
+   * Logger.
+   *
+   * @var \Drupal\Core\Logger\LoggerChannelFactory
+   */
+  protected $logger;
+
+  /**
    * Constructs an AtvService object.
    *
    * @param \GuzzleHttp\ClientInterface $http_client
    *   The HTTP client.
    */
-  public function __construct(ClientInterface $http_client) {
+  public function __construct(ClientInterface $http_client, LoggerChannelFactory $loggerFactory) {
     $this->httpClient = $http_client;
+    $this->logger = $loggerFactory->get('helfi_atv');
 
     $this->headers = [
       'X-Api-Key' => getenv('ATV_API_KEY'),
@@ -59,18 +68,23 @@ class AtvService {
    *
    * @return array
    *   Data
+   * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
    */
   public function searchDocuments(array $searchParams): array {
 
     $url = $this->buildUrl($searchParams);
 
-    $responseData = $this->request(
-      'GET',
-      $url,
-      [
-        'headers' => $this->headers,
-      ]
-    );
+    try {
+      $responseData = $this->request(
+        'GET',
+        $url,
+        [
+          'headers' => $this->headers,
+        ]
+      );
+    } catch (AtvFailedToConnectException|GuzzleException $e) {
+      return [];
+    }
 
     // If no data for some reason, don't fail, return empty array instead.
     if (!is_array($responseData)) {
@@ -253,6 +267,10 @@ class AtvService {
    *
    * @return bool|array
    *   Content or boolean if void.
+   *
+   * @throws \Drupal\helfi_atv\AtvFailedToConnectException
+   * @throws \GuzzleHttp\Exception\GuzzleException
+   * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
    */
   private function request(string $method, string $url, array $options): bool|array {
 
@@ -277,8 +295,17 @@ class AtvService {
       }
       return FALSE;
     } catch (ServerException|GuzzleException $e) {
-      // @todo error handler for ATV request
-      return FALSE;
+      $msg = $e->getMessage();
+
+      $this->logger->error($msg);
+
+      if (str_contains($msg, 'cURL error 7')) {
+        throw new AtvFailedToConnectException($msg);
+      } elseif($e->getCode() === 404) {
+        throw new AtvDocumentNotFoundException('Document not found');
+      } else {
+        throw $e;
+      }
     }
   }
 
