@@ -69,22 +69,20 @@ class AtvService {
    * @return array
    *   Data
    * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
+   * @throws \Drupal\helfi_atv\AtvFailedToConnectException
+   * @throws \GuzzleHttp\Exception\GuzzleException
    */
   public function searchDocuments(array $searchParams): array {
 
     $url = $this->buildUrl($searchParams);
 
-    try {
-      $responseData = $this->request(
-        'GET',
-        $url,
-        [
-          'headers' => $this->headers,
-        ]
-      );
-    } catch (AtvFailedToConnectException|GuzzleException $e) {
-      return [];
-    }
+    $responseData = $this->request(
+      'GET',
+      $url,
+      [
+        'headers' => $this->headers,
+      ]
+    );
 
     // If no data for some reason, don't fail, return empty array instead.
     if (!is_array($responseData)) {
