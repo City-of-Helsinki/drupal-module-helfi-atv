@@ -2,13 +2,10 @@
 
 namespace Drupal\helfi_atv;
 
-
-use Exception;
-
 /**
- *
+ * Exception for not found Document.
  */
-class AtvDocumentNotFoundException extends Exception {
+class AtvDocumentNotFoundException extends \Exception {
 
 
 }

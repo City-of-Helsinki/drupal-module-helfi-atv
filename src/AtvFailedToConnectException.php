@@ -2,13 +2,10 @@
 
 namespace Drupal\helfi_atv;
 
-
-use Exception;
-
 /**
- *
+ * Exception thrown when no ATV connection exist.
  */
-class AtvFailedToConnectException extends Exception {
+class AtvFailedToConnectException extends \Exception {
 
 
 }
