@@ -3,6 +3,7 @@
 namespace Drupal\helfi_atv;
 
 use Drupal\Component\Serialization\Json;
+use JetBrains\PhpStorm\Pure;
 
 /**
  * Document model in ATV.
@@ -169,10 +170,20 @@ final class AtvDocument implements \JsonSerializable {
       $object->draft = $values['draft'];
     }
     if (isset($values['metadata'])) {
-      $object->metadata = $values['metadata'];
+      // Make sure metadata is decoded if it's an string
+      if (is_string($values['metadata'])) {
+        $object->metadata = Json::decode($values['metadata']);
+      } else {
+        $object->metadata = $values['metadata'];
+      }
     }
     if (isset($values['content'])) {
-      $object->content = $values['content'];
+      // Make sure content is decoded if it's an string
+      if (is_string($values['content'])) {
+        $object->content = self::parseContent($values['content']);
+      } else {
+        $object->content = $values['content'];
+      }
     }
     if (isset($values['created_at'])) {
       $object->createdAt = $values['created_at'];
@@ -191,6 +202,22 @@ final class AtvDocument implements \JsonSerializable {
     }
 
     return $object;
+  }
+
+  /**
+   * Parse malformed json.
+   *
+   * @param string $contentString
+   *   JSON to be checked.
+   *
+   * @return mixed
+   *   Decoded JSON array.
+   */
+  public static function parseContent(string $contentString): mixed {
+    $replaced = str_replace("'", "\"", $contentString);
+    $replaced = str_replace("False", "false", $replaced);
+
+    return Json::decode($replaced);
   }
 
   /**
@@ -286,7 +313,16 @@ final class AtvDocument implements \JsonSerializable {
    *   Document ID.
    */
   public function getId(): string {
-    return $this->id;
+    return $this->id ?? '';
+  }
+
+  /**
+   * Is this document new?
+   *
+   * @return bool
+   */
+  #[Pure] public function isNew(): bool {
+    return empty($this->getId());
   }
 
   /**
@@ -402,6 +438,15 @@ final class AtvDocument implements \JsonSerializable {
   /**
    * Set metadata.
    *
+   * @param string $status
+   */
+  public function setStatus(string $status): void {
+    $this->status = $status;
+  }
+
+  /**
+   * Set metadata.
+   *
    * @param string $key
    *   Metadata key.
    * @param array $value
@@ -471,4 +516,10 @@ final class AtvDocument implements \JsonSerializable {
     return $this->href;
   }
 
+  /**
+   * @param string $transactionId
+   */
+  public function setTransactionId(string $transactionId): void {
+    $this->transactionId = $transactionId;
+  }
 }

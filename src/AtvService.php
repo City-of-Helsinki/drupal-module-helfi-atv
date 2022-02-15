@@ -101,12 +101,10 @@ class AtvService {
     );
 
     // If no data for some reason, don't fail, return empty array instead.
-    if (!is_array($responseData)) {
-      return [];
+    if (!is_array($responseData) || empty($responseData['results'])) {
+      throw new AtvDocumentNotFoundException('No documents found in ATV');
     }
-
     return $responseData['results'];
-
   }
 
   /**
@@ -134,6 +132,9 @@ class AtvService {
         $paramCounter++;
       }
     }
+    if (!str_ends_with($newUrl, '/') && !str_contains($newUrl, '?')) {
+      return $newUrl . '/';
+    }
     return $newUrl;
   }
 
@@ -152,17 +153,16 @@ class AtvService {
    */
   public function getDocument(string $id): AtvDocument {
 
-    $responseData = $this->request(
-     'GET',
-     $this->baseUrl . $id,
-     [
-       'headers' => $this->headers,
-     ]
-     );
+    $response = $this->request(
+      'GET',
+      $this->baseUrl . $id,
+      [
+        'headers' => $this->headers,
+      ]
+    );
 
-    $responseData['content'] = $this->parseContent($responseData['content']);
 
-    return AtvDocument::create($responseData);
+    return reset($response['results']);
 
   }
 
@@ -246,31 +246,38 @@ class AtvService {
    *
    * @param string $id
    *   Document id to be patched.
-   * @param array $document
+   * @param array $dataArray
    *   Document data to update.
    *
-   * @return bool|null
-   *   If PATCH succeeded?
+   * @return bool|\Drupal\helfi_atv\AtvDocument|null
+   *   Boolean or updated data.
    *
    * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
    * @throws \GuzzleHttp\Exception\GuzzleException
    */
-  public function patchDocument(string $id, array $document): ?bool {
+  public function patchDocument(string $id, array $dataArray): bool|AtvDocument|null {
     $patchUrl = $this->baseUrl . $id;
 
-    $content = JSON::encode((object) $document);
+    if (!str_ends_with($patchUrl, '/') && !str_contains($patchUrl, '?')) {
+      $patchUrl = $patchUrl . '/';
+    }
 
-    $headers = array_merge($this->headers, ['Content-Type' => 'application/json']);
+    $formData = $this->arrayToFormData($dataArray);
 
-    return $this->request(
+    $opts = [
+      'headers' => $this->headers,
+      // Form data.
+      'multipart' => $formData,
+    ];
+
+    $results = $this->request(
       'PATCH',
       $patchUrl,
-      [
-        'headers' => $headers,
-        'body' => $content,
-      ]
+      $opts
     );
+
+    return reset($results['results']);
   }
 
   /**
@@ -300,14 +307,14 @@ class AtvService {
    * @param array $options
    *   Options for request.
    *
-   * @return bool|array
+   * @return bool|array|\Drupal\helfi_atv\AtvDocument
    *   Content or boolean if void.
    *
+   * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
    * @throws \GuzzleHttp\Exception\GuzzleException
-   * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
    */
-  private function request(string $method, string $url, array $options): bool|array {
+  private function request(string $method, string $url, array $options): bool|array|AtvDocument {
 
     try {
       $resp = $this->httpClient->request(
@@ -317,28 +324,40 @@ class AtvService {
       );
       // @todo Check if there's any point doing these if's here?!?!
       if ($resp->getStatusCode() == 200) {
-        if ($method == 'GET') {
-          $bodyContents = $resp->getBody()->getContents();
-          if (is_string($bodyContents)) {
-            return Json::decode($bodyContents);
+        $bodyContents = $resp->getBody()->getContents();
+        if (is_string($bodyContents)) {
+          $bodyContents = Json::decode($bodyContents);
+        }
+        if (isset($bodyContents['results']) && is_array($bodyContents['results'])) {
+          $resultDocuments = [];
+          foreach ($bodyContents['results'] as $key => $value) {
+            $resultDocuments[] = $this->createDocument($value);
           }
-          return $bodyContents;
+          $bodyContents['results'] = $resultDocuments;
         }
         else {
-          return TRUE;
+          return [
+            'results' => [$this->createDocument($bodyContents)],
+          ];
         }
+        return $bodyContents;
       }
       if ($resp->getStatusCode() == 201) {
         $bodyContents = $resp->getBody()->getContents();
         if (is_string($bodyContents)) {
-          $bc = Json::decode($bodyContents);
-          return $bc;
+          $bodyContents = Json::decode($bodyContents);
+        }
+        if (is_array($bodyContents['results'])) {
+          $resultDocuments = [];
+          foreach ($bodyContents['results'] as $key => $value) {
+            $resultDocuments[] = $this->createDocument($value);
+          }
+          $bodyContents['results'] = $resultDocuments;
         }
         return $bodyContents;
       }
       return FALSE;
-    }
-    catch (ServerException | GuzzleException $e) {
+    } catch (ServerException|GuzzleException $e) {
       $msg = $e->getMessage();
 
       $this->logger->error($msg);
@@ -354,4 +373,5 @@ class AtvService {
       }
     }
   }
+
 }
