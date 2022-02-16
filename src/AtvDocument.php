@@ -173,15 +173,23 @@ final class AtvDocument implements \JsonSerializable {
       // Make sure metadata is decoded if it's an string
       if (is_string($values['metadata'])) {
         $object->metadata = Json::decode($values['metadata']);
-      } else {
+      }
+      else {
         $object->metadata = $values['metadata'];
       }
     }
     if (isset($values['content'])) {
       // Make sure content is decoded if it's an string
       if (is_string($values['content'])) {
-        $object->content = self::parseContent($values['content']);
-      } else {
+        $structure = self::parseContent($values['content']);
+        if (is_array($structure)) {
+          $object->content = $structure;
+        }
+        else {
+          $object->content = [];
+        }
+      }
+      else {
         $object->content = $values['content'];
       }
     }
@@ -216,6 +224,7 @@ final class AtvDocument implements \JsonSerializable {
   public static function parseContent(string $contentString): mixed {
     $replaced = str_replace("'", "\"", $contentString);
     $replaced = str_replace("False", "false", $replaced);
+    $replaced = str_replace("True", "true", $replaced);
 
     return Json::decode($replaced);
   }
@@ -522,4 +531,5 @@ final class AtvDocument implements \JsonSerializable {
   public function setTransactionId(string $transactionId): void {
     $this->transactionId = $transactionId;
   }
+
 }
