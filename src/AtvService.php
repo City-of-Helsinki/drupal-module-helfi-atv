@@ -179,6 +179,7 @@ class AtvService {
   public function parseContent(string $contentString): mixed {
     $replaced = str_replace("'", "\"", $contentString);
     $replaced = str_replace("False", "false", $replaced);
+    $replaced = str_replace("True", "true", $replaced);
 
     return Json::decode($replaced);
   }
@@ -282,20 +283,30 @@ class AtvService {
   }
 
   /**
-   * Get document attachments.
-   */
-  public function getAttachments() {
-
-  }
-
-  /**
-   * Get single attachment.
+   * Deletes attachment from given document in ATV.
    *
-   * @param string $id
-   *   Id of attachment.
+   * @param string $documentId
+   *   Parent document id.
+   * @param string $attachmentId
+   *   Attachment id.
+   *
+   * @return \Drupal\helfi_atv\AtvDocument|bool|array
+   *   Nonfalse if success.
+   *
+   * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
+   * @throws \Drupal\helfi_atv\AtvFailedToConnectException
+   * @throws \GuzzleHttp\Exception\GuzzleException
    */
-  public function getAttachment(string $id) {
+  public function deleteAttachment(string $documentId, string $attachmentId): AtvDocument|bool|array {
+    $deleteUrl = $this->baseUrl . $documentId . '/attachments/' . $attachmentId . '/';
 
+    return $this->request(
+      'DELETE',
+      $deleteUrl,
+      [
+        'headers' => $this->headers,
+      ]
+    );
   }
 
   /**
@@ -411,6 +422,9 @@ class AtvService {
         }
         return $bodyContents;
       }
+      if ($method == 'DELETE' && $resp->getStatusCode() == 204) {
+        return TRUE;
+      }
       return FALSE;
     }
     catch (ServerException | GuzzleException $e) {
@@ -422,7 +436,7 @@ class AtvService {
         throw new AtvFailedToConnectException($msg);
       }
       elseif ($e->getCode() === 404) {
-        throw new AtvDocumentNotFoundException('Document not found');
+        throw new AtvDocumentNotFoundException($msg);
       }
       else {
         throw $e;
