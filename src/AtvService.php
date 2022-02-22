@@ -3,10 +3,12 @@
 namespace Drupal\helfi_atv;
 
 use Drupal\Core\Logger\LoggerChannelFactory;
+use Drupal\file\Entity\File;
 use GuzzleHttp\ClientInterface;
 use Drupal\Component\Serialization\Json;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\ServerException;
+use GuzzleHttp\Psr7\Utils;
 
 /**
  * Communicate with ATV.
@@ -161,7 +163,6 @@ class AtvService {
       ]
     );
 
-
     return reset($response['results']);
 
   }
@@ -256,7 +257,7 @@ class AtvService {
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
    * @throws \GuzzleHttp\Exception\GuzzleException
    */
-  public function patchDocument(string $id, array $dataArray): bool|AtvDocument|null {
+  public function patchDocument(string $id, array $dataArray): bool|AtvDocument|NULL {
     $patchUrl = $this->baseUrl . $id;
 
     if (!str_ends_with($patchUrl, '/') && !str_contains($patchUrl, '?')) {
@@ -295,6 +296,60 @@ class AtvService {
    */
   public function getAttachment(string $id) {
 
+  }
+
+  /**
+   * Get single attachment.
+   *
+   * @param string $documentId
+   *   Id of the document for this attachment.
+   * @param string $filename
+   *   Filename of the attachment.
+   * @param \Drupal\file\Entity\File $file
+   *   File to be uploaded.
+   *
+   * @return false|mixed
+   *   Did upload succeed?
+   */
+  public function uploadAttachment(string $documentId, string $filename, File $file) {
+
+    $attachmentUrl = $this->baseUrl . $documentId . '/attachments/';
+
+    $headers = $this->headers;
+    $headers['Content-Disposition'] = 'attachment; filename="' . $filename . '"';
+    $headers['Content-Type'] = 'application/octet-stream';
+
+    // Get file metadata.
+    $fileUri = $file->get('uri')->value;
+    $filePath = \Drupal::service('file_system')->realpath($fileUri);
+
+    // Get file data.
+    $body = Utils::tryFopen($filePath, 'r');
+
+    // Form data.
+    $data = [
+      'name' => $filename,
+      'filename' => $filename,
+      'contents' => $body,
+    ];
+
+    try {
+      $retval = $this->request(
+        'POST',
+        $attachmentUrl,
+        [
+          'headers' => $headers,
+          'multipart' => [$data],
+        ]
+      );
+
+      return $retval['id'] ?? FALSE;
+    }
+    catch (AtvDocumentNotFoundException | AtvFailedToConnectException | GuzzleException $e) {
+      $this->logger->error($e->getMessage());
+      return FALSE;
+    }
+    return FALSE;
   }
 
   /**
@@ -347,7 +402,7 @@ class AtvService {
         if (is_string($bodyContents)) {
           $bodyContents = Json::decode($bodyContents);
         }
-        if (is_array($bodyContents['results'])) {
+        if (isset($bodyContents['results']) && is_array($bodyContents['results'])) {
           $resultDocuments = [];
           foreach ($bodyContents['results'] as $key => $value) {
             $resultDocuments[] = $this->createDocument($value);
@@ -357,7 +412,8 @@ class AtvService {
         return $bodyContents;
       }
       return FALSE;
-    } catch (ServerException|GuzzleException $e) {
+    }
+    catch (ServerException | GuzzleException $e) {
       $msg = $e->getMessage();
 
       $this->logger->error($msg);

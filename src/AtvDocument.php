@@ -3,7 +3,6 @@
 namespace Drupal\helfi_atv;
 
 use Drupal\Component\Serialization\Json;
-use JetBrains\PhpStorm\Pure;
 
 /**
  * Document model in ATV.
@@ -170,7 +169,7 @@ final class AtvDocument implements \JsonSerializable {
       $object->draft = $values['draft'];
     }
     if (isset($values['metadata'])) {
-      // Make sure metadata is decoded if it's an string
+      // Make sure metadata is decoded if it's an string.
       if (is_string($values['metadata'])) {
         $object->metadata = Json::decode($values['metadata']);
       }
@@ -179,7 +178,7 @@ final class AtvDocument implements \JsonSerializable {
       }
     }
     if (isset($values['content'])) {
-      // Make sure content is decoded if it's an string
+      // Make sure content is decoded if it's an string.
       if (is_string($values['content'])) {
         $structure = self::parseContent($values['content']);
         if (is_array($structure)) {
@@ -326,11 +325,12 @@ final class AtvDocument implements \JsonSerializable {
   }
 
   /**
-   * Is this document new?
+   * Check if document is new.
    *
    * @return bool
+   *   True if it is.
    */
-  #[Pure] public function isNew(): bool {
+  public function isNew(): bool {
     return empty($this->getId());
   }
 
@@ -448,6 +448,7 @@ final class AtvDocument implements \JsonSerializable {
    * Set metadata.
    *
    * @param string $status
+   *   Status of document.
    */
   public function setStatus(string $status): void {
     $this->status = $status;
@@ -516,6 +517,24 @@ final class AtvDocument implements \JsonSerializable {
   }
 
   /**
+   * Get document attachments.
+   *
+   * @param string $filename
+   *   Filename for attachment.
+   *
+   * @return array
+   *   Attachment details for given filename
+   */
+  public function getAttachmentForFilename(string $filename): array {
+    foreach ($this->getAttachments() as $attachment) {
+      if ($attachment['filename'] == $filename) {
+        return $attachment;
+      }
+    }
+    return FALSE;
+  }
+
+  /**
    * Get document link.
    *
    * @return string
@@ -526,7 +545,10 @@ final class AtvDocument implements \JsonSerializable {
   }
 
   /**
+   * Set transaction id.
+   *
    * @param string $transactionId
+   *   Transaction id.
    */
   public function setTransactionId(string $transactionId): void {
     $this->transactionId = $transactionId;
