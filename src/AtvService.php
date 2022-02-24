@@ -2,8 +2,13 @@
 
 namespace Drupal\helfi_atv;
 
+use Drupal\Core\Entity\EntityStorageException;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Logger\LoggerChannelFactory;
 use Drupal\file\Entity\File;
+use Drupal\file\FileInterface;
+use Drupal\file\FileRepository;
+use Drupal\file\FileRepositoryInterface;
 use GuzzleHttp\ClientInterface;
 use Drupal\Component\Serialization\Json;
 use GuzzleHttp\Exception\GuzzleException;
@@ -44,6 +49,13 @@ class AtvService {
   protected $logger;
 
   /**
+   * Access to file system.
+   *
+   * @var \Drupal\file\FileRepository
+   */
+  protected FileRepository $fileRepository;
+
+  /**
    * Constructs an AtvService object.
    *
    * @param \GuzzleHttp\ClientInterface $http_client
@@ -51,7 +63,11 @@ class AtvService {
    * @param \Drupal\Core\Logger\LoggerChannelFactory $loggerFactory
    *   Logger factory.
    */
-  public function __construct(ClientInterface $http_client, LoggerChannelFactory $loggerFactory) {
+  public function __construct(
+    ClientInterface $http_client,
+    LoggerChannelFactory $loggerFactory,
+    FileRepository $fileRepository
+  ) {
     $this->httpClient = $http_client;
     $this->logger = $loggerFactory->get('helfi_atv');
 
@@ -61,6 +77,8 @@ class AtvService {
 
     // @todo figure out tunnistamo based auth to atv
     $this->baseUrl = getenv('ATV_BASE_URL');
+
+    $this->fileRepository = $fileRepository;
 
   }
 
@@ -179,7 +197,6 @@ class AtvService {
   public function parseContent(string $contentString): mixed {
     $replaced = str_replace("'", "\"", $contentString);
     $replaced = str_replace("False", "false", $replaced);
-    $replaced = str_replace("True", "true", $replaced);
 
     return Json::decode($replaced);
   }
@@ -258,7 +275,7 @@ class AtvService {
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
    * @throws \GuzzleHttp\Exception\GuzzleException
    */
-  public function patchDocument(string $id, array $dataArray): bool|AtvDocument|NULL {
+  public function patchDocument(string $id, array $dataArray): bool|AtvDocument|null {
     $patchUrl = $this->baseUrl . $id;
 
     if (!str_ends_with($patchUrl, '/') && !str_contains($patchUrl, '?')) {
@@ -283,30 +300,36 @@ class AtvService {
   }
 
   /**
-   * Deletes attachment from given document in ATV.
+   * Get document attachments.
+   */
+  public function getAttachments() {
+
+  }
+
+  /**
+   * Get single attachment.
    *
-   * @param string $documentId
-   *   Parent document id.
-   * @param string $attachmentId
-   *   Attachment id.
+   * @param $url
+   *  Url for single attachment file.
    *
-   * @return \Drupal\helfi_atv\AtvDocument|bool|array
-   *   Nonfalse if success.
+   * @return bool|\Drupal\file\FileInterface
+   *  File or false if failed.
    *
    * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
    * @throws \GuzzleHttp\Exception\GuzzleException
    */
-  public function deleteAttachment(string $documentId, string $attachmentId): AtvDocument|bool|array {
-    $deleteUrl = $this->baseUrl . $documentId . '/attachments/' . $attachmentId . '/';
-
-    return $this->request(
-      'DELETE',
-      $deleteUrl,
+  public function getAttachment($url): bool|FileInterface {
+    $file = $this->request(
+      'GET',
+      $url,
       [
         'headers' => $this->headers,
       ]
     );
+
+    return $file ?? FALSE;
+
   }
 
   /**
@@ -355,8 +378,7 @@ class AtvService {
       );
 
       return $retval['id'] ?? FALSE;
-    }
-    catch (AtvDocumentNotFoundException | AtvFailedToConnectException | GuzzleException $e) {
+    } catch (AtvDocumentNotFoundException|AtvFailedToConnectException|GuzzleException $e) {
       $this->logger->error($e->getMessage());
       return FALSE;
     }
@@ -373,14 +395,14 @@ class AtvService {
    * @param array $options
    *   Options for request.
    *
-   * @return bool|array|\Drupal\helfi_atv\AtvDocument
+   * @return array|bool|FileInterface|AtvDocument
    *   Content or boolean if void.
    *
    * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
    * @throws \GuzzleHttp\Exception\GuzzleException
    */
-  private function request(string $method, string $url, array $options): bool|array|AtvDocument {
+  private function request(string $method, string $url, array $options): array|AtvDocument|bool|FileInterface {
 
     try {
       $resp = $this->httpClient->request(
@@ -388,8 +410,36 @@ class AtvService {
         $url,
         $options
       );
+
       // @todo Check if there's any point doing these if's here?!?!
       if ($resp->getStatusCode() == 200) {
+
+        // handle file download situation.
+        $contentDisposition = $resp->getHeader('content-disposition');
+        $contentDisposition = reset($contentDisposition);
+
+        $contentDispositionExplode = explode(';', $contentDisposition);
+        if ($contentDispositionExplode[0] == 'attachment') {
+          // if response is attachment
+          $filenameExplode = explode('=',$contentDispositionExplode[1]);
+          $filename = $filenameExplode[1];
+          $filename = str_replace('"', '', $filename);
+          try {
+            // save file to filesystem & return File object
+            $file = $this->fileRepository->writeData(
+              $resp->getBody()->getContents(),
+              'private://grants_profile/' . $filename,
+              FileSystemInterface::EXISTS_REPLACE
+            );
+          } catch (EntityStorageException $e) {
+            // if fails, log error & return false
+            $this->logger->error('File download/filesystem write failed: '.$e->getMessage());
+            return FALSE;
+          }
+          return $file;
+        }
+
+
         $bodyContents = $resp->getBody()->getContents();
         if (is_string($bodyContents)) {
           $bodyContents = Json::decode($bodyContents);
@@ -422,12 +472,8 @@ class AtvService {
         }
         return $bodyContents;
       }
-      if ($method == 'DELETE' && $resp->getStatusCode() == 204) {
-        return TRUE;
-      }
       return FALSE;
-    }
-    catch (ServerException | GuzzleException $e) {
+    } catch (ServerException|GuzzleException $e) {
       $msg = $e->getMessage();
 
       $this->logger->error($msg);
@@ -436,7 +482,7 @@ class AtvService {
         throw new AtvFailedToConnectException($msg);
       }
       elseif ($e->getCode() === 404) {
-        throw new AtvDocumentNotFoundException($msg);
+        throw new AtvDocumentNotFoundException('Document not found');
       }
       else {
         throw $e;

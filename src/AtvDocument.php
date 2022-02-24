@@ -224,6 +224,7 @@ final class AtvDocument implements \JsonSerializable {
     $replaced = str_replace("'", "\"", $contentString);
     $replaced = str_replace("False", "false", $replaced);
     $replaced = str_replace("True", "true", $replaced);
+    $replaced = str_replace("None", '"none"', $replaced);
 
     return Json::decode($replaced);
   }
