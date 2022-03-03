@@ -8,7 +8,6 @@ use Drupal\Core\Logger\LoggerChannelFactory;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
 use Drupal\file\FileRepository;
-use Drupal\file\FileRepositoryInterface;
 use GuzzleHttp\ClientInterface;
 use Drupal\Component\Serialization\Json;
 use GuzzleHttp\Exception\GuzzleException;
@@ -62,6 +61,8 @@ class AtvService {
    *   The HTTP client.
    * @param \Drupal\Core\Logger\LoggerChannelFactory $loggerFactory
    *   Logger factory.
+   * @param \Drupal\file\FileRepository $fileRepository
+   *   Access to filesystem.
    */
   public function __construct(
     ClientInterface $http_client,
@@ -275,7 +276,7 @@ class AtvService {
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
    * @throws \GuzzleHttp\Exception\GuzzleException
    */
-  public function patchDocument(string $id, array $dataArray): bool|AtvDocument|null {
+  public function patchDocument(string $id, array $dataArray): bool|AtvDocument|NULL {
     $patchUrl = $this->baseUrl . $id;
 
     if (!str_ends_with($patchUrl, '/') && !str_contains($patchUrl, '?')) {
@@ -300,26 +301,19 @@ class AtvService {
   }
 
   /**
-   * Get document attachments.
-   */
-  public function getAttachments() {
-
-  }
-
-  /**
    * Get single attachment.
    *
-   * @param $url
-   *  Url for single attachment file.
+   * @param string $url
+   *   Url for single attachment file.
    *
    * @return bool|\Drupal\file\FileInterface
-   *  File or false if failed.
+   *   File or false if failed.
    *
    * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
    * @throws \GuzzleHttp\Exception\GuzzleException
    */
-  public function getAttachment($url): bool|FileInterface {
+  public function getAttachment(string $url): bool|FileInterface {
     $file = $this->request(
       'GET',
       $url,
@@ -329,7 +323,34 @@ class AtvService {
     );
 
     return $file ?? FALSE;
+  }
 
+  /**
+   * Delete document attachment from ATV.
+   *
+   * @param string $documentId
+   *   ID of document.
+   * @param string $attachmentId
+   *   ID of attachment.
+   *
+   * @return array|bool|\Drupal\file\FileInterface|\Drupal\helfi_atv\AtvDocument
+   *   If removal succeeed.
+   *
+   * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
+   * @throws \Drupal\helfi_atv\AtvFailedToConnectException
+   * @throws \GuzzleHttp\Exception\GuzzleException
+   */
+  public function deleteAttachment(string $documentId, string $attachmentId): AtvDocument|bool|array|FileInterface {
+
+    $url = $this->baseUrl . $documentId . '/attachments/' . $attachmentId . '/';
+
+    return $this->request(
+      'DELETE',
+      $url,
+      [
+        'headers' => $this->headers,
+      ]
+    );
   }
 
   /**
@@ -378,7 +399,8 @@ class AtvService {
       );
 
       return $retval['id'] ?? FALSE;
-    } catch (AtvDocumentNotFoundException|AtvFailedToConnectException|GuzzleException $e) {
+    }
+    catch (AtvDocumentNotFoundException | AtvFailedToConnectException | GuzzleException $e) {
       $this->logger->error($e->getMessage());
       return FALSE;
     }
@@ -414,31 +436,31 @@ class AtvService {
       // @todo Check if there's any point doing these if's here?!?!
       if ($resp->getStatusCode() == 200) {
 
-        // handle file download situation.
+        // Handle file download situation.
         $contentDisposition = $resp->getHeader('content-disposition');
         $contentDisposition = reset($contentDisposition);
 
         $contentDispositionExplode = explode(';', $contentDisposition);
         if ($contentDispositionExplode[0] == 'attachment') {
-          // if response is attachment
-          $filenameExplode = explode('=',$contentDispositionExplode[1]);
+          // If response is attachment.
+          $filenameExplode = explode('=', $contentDispositionExplode[1]);
           $filename = $filenameExplode[1];
           $filename = str_replace('"', '', $filename);
           try {
-            // save file to filesystem & return File object
+            // Save file to filesystem & return File object.
             $file = $this->fileRepository->writeData(
               $resp->getBody()->getContents(),
               'private://grants_profile/' . $filename,
               FileSystemInterface::EXISTS_REPLACE
             );
-          } catch (EntityStorageException $e) {
-            // if fails, log error & return false
-            $this->logger->error('File download/filesystem write failed: '.$e->getMessage());
+          }
+          catch (EntityStorageException $e) {
+            // If fails, log error & return false.
+            $this->logger->error('File download/filesystem write failed: ' . $e->getMessage());
             return FALSE;
           }
           return $file;
         }
-
 
         $bodyContents = $resp->getBody()->getContents();
         if (is_string($bodyContents)) {
@@ -473,7 +495,8 @@ class AtvService {
         return $bodyContents;
       }
       return FALSE;
-    } catch (ServerException|GuzzleException $e) {
+    }
+    catch (ServerException | GuzzleException $e) {
       $msg = $e->getMessage();
 
       $this->logger->error($msg);
