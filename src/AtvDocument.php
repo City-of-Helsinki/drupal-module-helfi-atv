@@ -38,6 +38,13 @@ final class AtvDocument implements \JsonSerializable {
   protected string $status;
 
   /**
+   * Document status history
+   *
+   * @var array[]
+   */
+  protected array $statusHistory;
+
+  /**
    * Document type.
    *
    * @var string
@@ -151,7 +158,16 @@ final class AtvDocument implements \JsonSerializable {
       $object->service = $values['service'];
     }
     if (isset($values['status'])) {
-      $object->status = $values['status'];
+      if (is_array($values['status'])) {
+        $object->status = $values['status']['value'];
+      } else {
+        $object->status = $values['status'];
+      }
+    }
+    if (isset($values['status_histories'])) {
+      if (is_array($values['status_histories'])) {
+        $object->statusHistory = $values['status_histories'];
+      }
     }
     if (isset($values['transaction_id'])) {
       $object->transactionId = $values['transaction_id'];
@@ -264,9 +280,9 @@ final class AtvDocument implements \JsonSerializable {
     // If (isset($this->service)) {
     // $json_array['service'] = $this->service;
     // }
-    // if (isset($this->userId)) {
-    // $json_array['user_id'] = $this->getUserId();
-    // }
+     if (isset($this->userId)) {
+     $json_array['user_id'] = $this->getUserId();
+     }
     if (isset($this->createdAt)) {
       $json_array['created_at'] = $this->createdAt;
     }
@@ -303,6 +319,13 @@ final class AtvDocument implements \JsonSerializable {
     }
 
     return $json_array;
+  }
+
+  /**
+   * @return array[]
+   */
+  public function getStatusHistory(): array {
+    return $this->statusHistory;
   }
 
   /**
