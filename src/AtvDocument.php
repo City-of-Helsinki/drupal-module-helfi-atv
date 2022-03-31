@@ -38,7 +38,7 @@ final class AtvDocument implements \JsonSerializable {
   protected string $status;
 
   /**
-   * Document status history
+   * Document status history.
    *
    * @var array[]
    */
@@ -160,7 +160,8 @@ final class AtvDocument implements \JsonSerializable {
     if (isset($values['status'])) {
       if (is_array($values['status'])) {
         $object->status = $values['status']['value'];
-      } else {
+      }
+      else {
         $object->status = $values['status'];
       }
     }
@@ -279,10 +280,10 @@ final class AtvDocument implements \JsonSerializable {
     }
     // If (isset($this->service)) {
     // $json_array['service'] = $this->service;
-    // }
-     if (isset($this->userId)) {
-     $json_array['user_id'] = $this->getUserId();
-     }
+    // }.
+    if (isset($this->userId)) {
+      $json_array['user_id'] = $this->getUserId();
+    }
     if (isset($this->createdAt)) {
       $json_array['created_at'] = $this->createdAt;
     }
@@ -322,7 +323,10 @@ final class AtvDocument implements \JsonSerializable {
   }
 
   /**
+   * Get document status history.
+   *
    * @return array[]
+   *   Document status history.
    */
   public function getStatusHistory(): array {
     return $this->statusHistory;
@@ -517,7 +521,9 @@ final class AtvDocument implements \JsonSerializable {
    *   Document content.
    */
   public function getContent(): array {
-    return $this->content;
+    $retval = $this->content;
+
+    return $retval;
   }
 
   /**
@@ -576,6 +582,65 @@ final class AtvDocument implements \JsonSerializable {
    */
   public function setTransactionId(string $transactionId): void {
     $this->transactionId = $transactionId;
+  }
+
+  /**
+   * Find out what attachments are uploaded and what are not.
+   *
+   * @return array
+   *   Attachments sorted by upload status.
+   */
+  public function attachmentsUploadStatus(): array {
+    $attachments = $this->attachments;
+    $content = $this->getContent();
+
+    $contentAttachments = $content["attachmentsInfo"]["attachmentsArray"];
+
+    $uploadedByContent = array_filter($contentAttachments, function ($item) {
+      foreach ($item as $itemArray) {
+        if ($itemArray['ID'] === 'fileName') {
+          return TRUE;
+        }
+      }
+      return FALSE;
+    });
+
+    $up = [];
+    $not = [];
+
+    foreach ($uploadedByContent as $ca) {
+
+      $fnArray = array_filter($ca, function ($caItem) {
+        if ($caItem['ID'] === 'fileName') {
+          return TRUE;
+        }
+        else {
+          return FALSE;
+        }
+      });
+      $fn1 = reset($fnArray);
+      $fn = $fn1['value'];
+
+      $attFound = FALSE;
+
+      foreach ($attachments as $k => $v) {
+        if ($v['filename'] === $fn) {
+          $attFound = TRUE;
+        }
+      }
+
+      if ($attFound) {
+        $up[] = $fn;
+      }
+      else {
+        $not[] = $fn;
+      }
+    }
+
+    return [
+      'uploaded' => $up,
+      'not-uploaded' => $not,
+    ];
   }
 
 }

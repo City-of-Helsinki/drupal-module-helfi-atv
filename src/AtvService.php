@@ -462,9 +462,9 @@ class AtvService {
           return $file;
         }
 
-        $bodyContents = $resp->getBody()->getContents();
-        if (is_string($bodyContents)) {
-          $bodyContents = Json::decode($bodyContents);
+        $bc = $resp->getBody()->getContents();
+        if (is_string($bc)) {
+          $bodyContents = Json::decode($bc);
         }
         if (isset($bodyContents['results']) && is_array($bodyContents['results'])) {
           $resultDocuments = [];
@@ -474,9 +474,12 @@ class AtvService {
           $bodyContents['results'] = $resultDocuments;
         }
         else {
-          return [
-            'results' => [$this->createDocument($bodyContents)],
-          ];
+          if ($bodyContents) {
+            return [
+              'results' => [$this->createDocument($bodyContents)],
+            ];
+          }
+          return FALSE;
         }
         return $bodyContents;
       }
