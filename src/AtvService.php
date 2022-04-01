@@ -5,6 +5,8 @@ namespace Drupal\helfi_atv;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Logger\LoggerChannelFactory;
+use Drupal\Core\TempStore\PrivateTempStore;
+use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
 use Drupal\file\FileRepository;
@@ -55,6 +57,20 @@ class AtvService {
   protected FileRepository $fileRepository;
 
   /**
+   * Access to session storage.
+   *
+   * @var \Drupal\Core\TempStore\PrivateTempStore
+   */
+  protected PrivateTempStore $tempStore;
+
+  /**
+   * Do we use caching or not?
+   *
+   * @var bool
+   */
+  protected bool $useCache;
+
+  /**
    * Constructs an AtvService object.
    *
    * @param \GuzzleHttp\ClientInterface $http_client
@@ -63,11 +79,14 @@ class AtvService {
    *   Logger factory.
    * @param \Drupal\file\FileRepository $fileRepository
    *   Access to filesystem.
+   * @param \Drupal\Core\TempStore\PrivateTempStoreFactory $tempstore
+   *   Tempstore to save responses.
    */
   public function __construct(
     ClientInterface $http_client,
     LoggerChannelFactory $loggerFactory,
-    FileRepository $fileRepository
+    FileRepository $fileRepository,
+    PrivateTempStoreFactory $tempstore
   ) {
     $this->httpClient = $http_client;
     $this->logger = $loggerFactory->get('helfi_atv');
@@ -80,6 +99,9 @@ class AtvService {
     $this->baseUrl = getenv('ATV_BASE_URL');
 
     $this->fileRepository = $fileRepository;
+    $this->tempStore = $tempstore->get('atv_service');
+
+    $this->useCache = getenv('ATV_USE_CACHE');
 
   }
 
@@ -101,17 +123,27 @@ class AtvService {
    *
    * @param array $searchParams
    *   Search params.
+   * @param bool $refetch
+   *   Force refetch from ATV.
    *
    * @return array
    *   Data
    *
+   * @throws \Drupal\Core\TempStore\TempStoreException
    * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
    * @throws \GuzzleHttp\Exception\GuzzleException
    */
-  public function searchDocuments(array $searchParams): array {
+  public function searchDocuments(array $searchParams, bool $refetch = FALSE): array {
 
     $url = $this->buildUrl($searchParams);
+    $cacheKey = implode('-', $searchParams);
+
+    if ($this->useCache && $refetch === FALSE) {
+      if ($this->isCached($cacheKey)) {
+        return $this->getFromCache($cacheKey);
+      }
+    }
 
     $responseData = $this->request(
       'GET',
@@ -125,6 +157,11 @@ class AtvService {
     if (!is_array($responseData) || empty($responseData['results'])) {
       throw new AtvDocumentNotFoundException('No documents found in ATV');
     }
+
+    if ($this->useCache) {
+      $this->setToCache($cacheKey, $responseData['results']);
+    }
+
     return $responseData['results'];
   }
 
@@ -164,6 +201,8 @@ class AtvService {
    *
    * @param string $id
    *   Document id.
+   * @param bool $refetch
+   *   Force refetch.
    *
    * @return \Drupal\helfi_atv\AtvDocument
    *   Document from ATV.
@@ -171,8 +210,15 @@ class AtvService {
    * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
    * @throws \GuzzleHttp\Exception\GuzzleException
+   * @throws \Drupal\Core\TempStore\TempStoreException
    */
-  public function getDocument(string $id): AtvDocument {
+  public function getDocument(string $id, bool $refetch = FALSE): AtvDocument {
+
+    if ($this->useCache && $refetch === FALSE) {
+      if ($this->isCached($id)) {
+        return $this->getFromCache($id);
+      }
+    }
 
     $response = $this->request(
       'GET',
@@ -181,6 +227,10 @@ class AtvService {
         'headers' => $this->headers,
       ]
     );
+
+    if ($this->useCache) {
+      $this->setToCache($id, $response['results']);
+    }
 
     return reset($response['results']);
 
@@ -514,6 +564,50 @@ class AtvService {
         throw $e;
       }
     }
+  }
+
+  /**
+   * Whether or not we have made this query?
+   *
+   * @param string $key
+   *   Used key for caching.
+   *
+   * @return bool
+   *   Is this cached?
+   */
+  private function isCached(string $key): bool {
+    $tempStoreData = $this->tempStore->get('atv_service');
+    return isset($tempStoreData[$key]) && !empty($tempStoreData[$key]);
+  }
+
+  /**
+   * Get item from cache.
+   *
+   * @param string $key
+   *   Key to fetch from tempstore.
+   *
+   * @return mixed
+   *   Data in cache or null
+   */
+  private function getFromCache(string $key): mixed {
+    $tempStoreData = $this->tempStore->get('atv_service');
+    return (isset($tempStoreData[$key]) && !empty($tempStoreData[$key])) ? $tempStoreData[$key] : NULL;
+  }
+
+  /**
+   * Add item to cache.
+   *
+   * @param string $key
+   *   Used key for caching.
+   * @param array $data
+   *   Cached data.
+   *
+   * @throws \Drupal\Core\TempStore\TempStoreException
+   */
+  private function setToCache(string $key, array $data) {
+    $tempStoreData = $this->tempStore->get('atv_service');
+    $tempStoreData[$key] = $data;
+    $this->tempStore->set('atv_service', $tempStoreData);
   }
 
 }
