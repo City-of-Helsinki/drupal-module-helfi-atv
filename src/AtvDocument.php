@@ -238,6 +238,8 @@ final class AtvDocument implements \JsonSerializable {
    *   Decoded JSON array.
    */
   public static function parseContent(string $contentString): mixed {
+//    $replaced = str_replace("'s", "s", $contentString);
+//    $replaced = str_replace("'t", "t", $replaced);
     $replaced = str_replace("'", "\"", $contentString);
     $replaced = str_replace("False", "false", $replaced);
     $replaced = str_replace("True", "true", $replaced);
