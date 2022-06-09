@@ -238,10 +238,7 @@ final class AtvDocument implements \JsonSerializable {
    *   Decoded JSON array.
    */
   public static function parseContent(string $contentString): mixed {
-//    $replaced = str_replace("'s", "s", $contentString);
-//    $replaced = str_replace("'t", "t", $replaced);
-    $replaced = str_replace("'", "\"", $contentString);
-    $replaced = str_replace("False", "false", $replaced);
+    $replaced = str_replace("False", "false", $contentString);
     $replaced = str_replace("True", "true", $replaced);
     $replaced = str_replace("None", '"none"', $replaced);
 
@@ -584,65 +581,6 @@ final class AtvDocument implements \JsonSerializable {
    */
   public function setTransactionId(string $transactionId): void {
     $this->transactionId = $transactionId;
-  }
-
-  /**
-   * Find out what attachments are uploaded and what are not.
-   *
-   * @return array
-   *   Attachments sorted by upload status.
-   */
-  public function attachmentsUploadStatus(): array {
-    $attachments = $this->attachments;
-    $content = $this->getContent();
-
-    $contentAttachments = $content["attachmentsInfo"]["attachmentsArray"];
-
-    $uploadedByContent = array_filter($contentAttachments, function ($item) {
-      foreach ($item as $itemArray) {
-        if ($itemArray['ID'] === 'fileName') {
-          return TRUE;
-        }
-      }
-      return FALSE;
-    });
-
-    $up = [];
-    $not = [];
-
-    foreach ($uploadedByContent as $ca) {
-
-      $fnArray = array_filter($ca, function ($caItem) {
-        if ($caItem['ID'] === 'fileName') {
-          return TRUE;
-        }
-        else {
-          return FALSE;
-        }
-      });
-      $fn1 = reset($fnArray);
-      $fn = $fn1['value'];
-
-      $attFound = FALSE;
-
-      foreach ($attachments as $k => $v) {
-        if ($v['filename'] === $fn) {
-          $attFound = TRUE;
-        }
-      }
-
-      if ($attFound) {
-        $up[] = $fn;
-      }
-      else {
-        $not[] = $fn;
-      }
-    }
-
-    return [
-      'uploaded' => $up,
-      'not-uploaded' => $not,
-    ];
   }
 
 }
