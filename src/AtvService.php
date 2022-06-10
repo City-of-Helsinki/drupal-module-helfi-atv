@@ -71,6 +71,13 @@ class AtvService {
   protected bool $useCache;
 
   /**
+   * Denotes the environment.
+   *
+   * @var string
+   */
+  protected string $appEnvironment;
+
+  /**
    * Constructs an AtvService object.
    *
    * @param \GuzzleHttp\ClientInterface $http_client
@@ -102,6 +109,8 @@ class AtvService {
     $this->tempStore = $tempstore->get('atv_service');
 
     $this->useCache = getenv('ATV_USE_CACHE');
+
+    $this->appEnvironment = getenv('APP_ENV');
 
   }
 
@@ -145,7 +154,7 @@ class AtvService {
       }
     }
 
-    $responseData = $this->request(
+    $responseData = $this->doRequest(
       'GET',
       $url,
       [
@@ -220,7 +229,7 @@ class AtvService {
       }
     }
 
-    $response = $this->request(
+    $response = $this->doRequest(
       'GET',
       $this->baseUrl . $id,
       [
@@ -302,7 +311,7 @@ class AtvService {
       'multipart' => $formData,
     ];
 
-    $response = $this->request(
+    $response = $this->doRequest(
       'POST',
       $postUrl,
       $opts
@@ -341,7 +350,7 @@ class AtvService {
       'multipart' => $formData,
     ];
 
-    $results = $this->request(
+    $results = $this->doRequest(
       'PATCH',
       $patchUrl,
       $opts
@@ -364,7 +373,7 @@ class AtvService {
    * @throws \GuzzleHttp\Exception\GuzzleException
    */
   public function getAttachment(string $url): bool|FileInterface {
-    $file = $this->request(
+    $file = $this->doRequest(
       'GET',
       $url,
       [
@@ -394,7 +403,7 @@ class AtvService {
 
     $url = $this->baseUrl . $documentId . '/attachments/' . $attachmentId . '/';
 
-    return $this->request(
+    return $this->doRequest(
       'DELETE',
       $url,
       [
@@ -439,7 +448,7 @@ class AtvService {
     ];
 
     try {
-      $retval = $this->request(
+      $retval = $this->doRequest(
         'POST',
         $attachmentUrl,
         [
@@ -455,6 +464,55 @@ class AtvService {
       return FALSE;
     }
     return FALSE;
+  }
+
+  /**
+   * Execute requests with Guzzle, handle result paging.
+   *
+   * @param string $method
+   *   Method for request.
+   * @param string $url
+   *   Url used.
+   * @param array $options
+   *   Options for request.
+   * @param array $prevRes
+   *   Earlier results in paged content.
+   *
+   * @return array
+   *   Response data.
+   *
+   * @throws \GuzzleHttp\Exception\GuzzleException
+   */
+  protected function request(string $method, string $url, array $options, array $prevRes = []): array {
+
+    $resp = $this->httpClient->request(
+      $method,
+      $url,
+      $options
+    );
+
+    $bc = $resp->getBody()->getContents();
+    if (is_string($bc)) {
+      $bodyContents = Json::decode($bc);
+    }
+    else {
+      $bodyContents = [
+        'results' => [],
+      ];
+    }
+
+    /** @var \GuzzleHttp\Psr7\Response */
+    $bodyContents['response'] = $resp;
+
+    // Merge new results with old ones.
+    $bodyContents['results'] = array_merge($bodyContents['results'], $prevRes);
+    if ($bodyContents['count'] !== count($bodyContents['results'])) {
+      if (isset($bodyContents['next']) && !empty($bodyContents['next'])) {
+        // Call self for next results.
+        $bodyContents = $this->request($method, $bodyContents['next'], $options, $bodyContents['results']);
+      }
+    }
+    return $bodyContents;
   }
 
   /**
@@ -474,20 +532,26 @@ class AtvService {
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
    * @throws \GuzzleHttp\Exception\GuzzleException
    */
-  private function request(string $method, string $url, array $options): array|AtvDocument|bool|FileInterface {
-
+  private function doRequest(
+    string $method,
+    string $url,
+    array $options
+  ): array|AtvDocument|bool|FileInterface {
     try {
-      $resp = $this->httpClient->request(
+      $responseContent = $this->request(
         $method,
         $url,
         $options
       );
 
+      /** @var \GuzzleHttp\Psr7\Response */
+      $response = $responseContent['response'];
+
       // @todo Check if there's any point doing these if's here?!?!
-      if ($resp->getStatusCode() == 200) {
+      if ($response->getStatusCode() == 200) {
 
         // Handle file download situation.
-        $contentDisposition = $resp->getHeader('content-disposition');
+        $contentDisposition = $response->getHeader('content-disposition');
         $contentDisposition = reset($contentDisposition);
 
         $contentDispositionExplode = explode(';', $contentDisposition);
@@ -499,7 +563,7 @@ class AtvService {
           try {
             // Save file to filesystem & return File object.
             $file = $this->fileRepository->writeData(
-              $resp->getBody()->getContents(),
+              $response->getBody()->getContents(),
               'private://grants_profile/' . $filename,
               FileSystemInterface::EXISTS_REPLACE
             );
@@ -512,29 +576,31 @@ class AtvService {
           return $file;
         }
 
-        $bc = $resp->getBody()->getContents();
-        if (is_string($bc)) {
-          $bodyContents = Json::decode($bc);
-        }
-        if (isset($bodyContents['results']) && is_array($bodyContents['results'])) {
+        if (is_array($responseContent['results'])) {
           $resultDocuments = [];
-          foreach ($bodyContents['results'] as $key => $value) {
-            $resultDocuments[] = $this->createDocument($value);
+          foreach ($responseContent['results'] as $key => $value) {
+            if (is_array($value)) {
+              $resultDocuments[] = $this->createDocument($value);
+            }
+            else {
+              $resultDocuments[] = $value;
+            }
+
           }
-          $bodyContents['results'] = $resultDocuments;
+          $responseContent['results'] = $resultDocuments;
         }
         else {
-          if ($bodyContents) {
+          if ($responseContent) {
             return [
-              'results' => [$this->createDocument($bodyContents)],
+              'results' => [$this->createDocument($responseContent)],
             ];
           }
           return FALSE;
         }
-        return $bodyContents;
+        return $responseContent;
       }
-      if ($resp->getStatusCode() == 201) {
-        $bodyContents = $resp->getBody()->getContents();
+      if ($response->getStatusCode() == 201) {
+        $bodyContents = $response->getBody()->getContents();
         if (is_string($bodyContents)) {
           $bodyContents = Json::decode($bodyContents);
         }
@@ -550,8 +616,8 @@ class AtvService {
       return FALSE;
     }
     catch (ServerException | GuzzleException $e) {
-      $msg = $e->getMessage();
 
+      $msg = $e->getMessage();
       $this->logger->error($msg);
 
       if (str_contains($msg, 'cURL error 7')) {
@@ -575,7 +641,7 @@ class AtvService {
    * @return bool
    *   Is this cached?
    */
-  private function isCached(string $key): bool {
+  public function isCached(string $key): bool {
     $tempStoreData = $this->tempStore->get('atv_service');
     return isset($tempStoreData[$key]) && !empty($tempStoreData[$key]);
   }
@@ -589,7 +655,7 @@ class AtvService {
    * @return mixed
    *   Data in cache or null
    */
-  private function getFromCache(string $key): mixed {
+  protected function getFromCache(string $key): mixed {
     $tempStoreData = $this->tempStore->get('atv_service');
     return (isset($tempStoreData[$key]) && !empty($tempStoreData[$key])) ? $tempStoreData[$key] : NULL;
   }
@@ -604,7 +670,7 @@ class AtvService {
    *
    * @throws \Drupal\Core\TempStore\TempStoreException
    */
-  private function setToCache(string $key, array $data) {
+  protected function setToCache(string $key, array $data) {
     $tempStoreData = $this->tempStore->get('atv_service');
     $tempStoreData[$key] = $data;
     $this->tempStore->set('atv_service', $tempStoreData);
