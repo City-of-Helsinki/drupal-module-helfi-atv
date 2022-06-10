@@ -2,6 +2,7 @@
 
 namespace Drupal\helfi_atv;
 
+use Drupal;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Logger\LoggerChannelFactory;
@@ -435,7 +436,7 @@ class AtvService {
 
     // Get file metadata.
     $fileUri = $file->get('uri')->value;
-    $filePath = \Drupal::service('file_system')->realpath($fileUri);
+    $filePath = Drupal::service('file_system')->realpath($fileUri);
 
     // Get file data.
     $body = Utils::tryFopen($filePath, 'r');
@@ -505,7 +506,7 @@ class AtvService {
     $bodyContents['response'] = $resp;
 
     // Merge new results with old ones.
-    $bodyContents['results'] = array_merge($bodyContents['results'], $prevRes);
+    $bodyContents['results'] = array_merge($bodyContents['results'] ?? [], $prevRes);
     if ($bodyContents['count'] !== count($bodyContents['results'])) {
       if (isset($bodyContents['next']) && !empty($bodyContents['next'])) {
         // Call self for next results.
