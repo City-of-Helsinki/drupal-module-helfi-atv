@@ -2,7 +2,6 @@
 
 namespace Drupal\helfi_atv;
 
-use Drupal;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Logger\LoggerChannelFactory;
@@ -426,7 +425,7 @@ class AtvService {
    * @return false|mixed
    *   Did upload succeed?
    */
-  public function uploadAttachment(string $documentId, string $filename, File $file) {
+  public function uploadAttachment(string $documentId, string $filename, File $file): mixed {
 
     $attachmentUrl = $this->baseUrl . $documentId . '/attachments/';
 
@@ -436,7 +435,7 @@ class AtvService {
 
     // Get file metadata.
     $fileUri = $file->get('uri')->value;
-    $filePath = Drupal::service('file_system')->realpath($fileUri);
+    $filePath = \Drupal::service('file_system')->realpath($fileUri);
 
     // Get file data.
     $body = Utils::tryFopen($filePath, 'r');
@@ -505,14 +504,17 @@ class AtvService {
     /** @var \GuzzleHttp\Psr7\Response */
     $bodyContents['response'] = $resp;
 
-    // Merge new results with old ones.
-    $bodyContents['results'] = array_merge($bodyContents['results'] ?? [], $prevRes);
-    if ($bodyContents['count'] !== count($bodyContents['results'])) {
-      if (isset($bodyContents['next']) && !empty($bodyContents['next'])) {
-        // Call self for next results.
-        $bodyContents = $this->request($method, $bodyContents['next'], $options, $bodyContents['results']);
+    if (isset($bodyContents['count'])) {
+      if ($bodyContents['count'] !== count($bodyContents['results'])) {
+        $bodyContents['results'] = array_merge($bodyContents['results'] ?? [], $prevRes);
+        // Merge new results with old ones.
+        if (isset($bodyContents['next']) && !empty($bodyContents['next'])) {
+          // Call self for next results.
+          $bodyContents = $this->request($method, $bodyContents['next'], $options, $bodyContents['results']);
+        }
       }
     }
+
     return $bodyContents;
   }
 
@@ -577,7 +579,7 @@ class AtvService {
           return $file;
         }
 
-        if (is_array($responseContent['results'])) {
+        if (isset($responseContent['results']) && is_array($responseContent['results'])) {
           $resultDocuments = [];
           foreach ($responseContent['results'] as $key => $value) {
             if (is_array($value)) {
@@ -601,17 +603,22 @@ class AtvService {
         return $responseContent;
       }
       if ($response->getStatusCode() == 201) {
-        $bodyContents = $response->getBody()->getContents();
-        if (is_string($bodyContents)) {
+        $body = $response->getBody();
+        $bodyContents = $body->getContents();
+        if (is_string($bodyContents) && $bodyContents !== "") {
           $bodyContents = Json::decode($bodyContents);
-        }
-        if (isset($bodyContents['results']) && is_array($bodyContents['results'])) {
-          $resultDocuments = [];
-          foreach ($bodyContents['results'] as $key => $value) {
-            $resultDocuments[] = $this->createDocument($value);
+          if (isset($bodyContents['results']) && is_array($bodyContents['results'])) {
+            $resultDocuments = [];
+            foreach ($bodyContents['results'] as $key => $value) {
+              $resultDocuments[] = $this->createDocument($value);
+            }
+            $bodyContents['results'] = $resultDocuments;
           }
-          $bodyContents['results'] = $resultDocuments;
         }
+        else {
+          return $responseContent;
+        }
+
         return $bodyContents;
       }
       return FALSE;
