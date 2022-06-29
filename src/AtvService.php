@@ -491,14 +491,42 @@ class AtvService {
       $options
     );
 
-    $bc = $resp->getBody()->getContents();
-    if (is_string($bc)) {
-      $bodyContents = Json::decode($bc);
+    // Handle file download situation.
+    $contentDisposition = $resp->getHeader('content-disposition');
+    $contentDisposition = reset($contentDisposition);
+
+    $contentDispositionExplode = explode(';', $contentDisposition);
+    if ($contentDispositionExplode[0] == 'attachment') {
+      // If response is attachment.
+      $filenameExplode = explode('=', $contentDispositionExplode[1]);
+      $filename = $filenameExplode[1];
+      $filename = str_replace('"', '', $filename);
+      try {
+        // Save file to filesystem & return File object.
+        $file = $this->fileRepository->writeData(
+          $resp->getBody()->getContents(),
+          'private://grants_profile/' . $filename,
+          FileSystemInterface::EXISTS_REPLACE
+        );
+      }
+      catch (EntityStorageException $e) {
+        // If fails, log error & return false.
+        $this->logger->error('File download/filesystem write failed: ' . $e->getMessage());
+      }
+      $bodyContents = [
+        'file' => $file,
+      ];
     }
     else {
-      $bodyContents = [
-        'results' => [],
-      ];
+      $bc = $resp->getBody()->getContents();
+      if (is_string($bc)) {
+        $bodyContents = Json::decode($bc);
+      }
+      else {
+        $bodyContents = [
+          'results' => [],
+        ];
+      }
     }
 
     /** @var \GuzzleHttp\Psr7\Response */
@@ -553,32 +581,11 @@ class AtvService {
       // @todo Check if there's any point doing these if's here?!?!
       if ($response->getStatusCode() == 200) {
 
-        // Handle file download situation.
-        $contentDisposition = $response->getHeader('content-disposition');
-        $contentDisposition = reset($contentDisposition);
-
-        $contentDispositionExplode = explode(';', $contentDisposition);
-        if ($contentDispositionExplode[0] == 'attachment') {
-          // If response is attachment.
-          $filenameExplode = explode('=', $contentDispositionExplode[1]);
-          $filename = $filenameExplode[1];
-          $filename = str_replace('"', '', $filename);
-          try {
-            // Save file to filesystem & return File object.
-            $file = $this->fileRepository->writeData(
-              $response->getBody()->getContents(),
-              'private://grants_profile/' . $filename,
-              FileSystemInterface::EXISTS_REPLACE
-            );
-          }
-          catch (EntityStorageException $e) {
-            // If fails, log error & return false.
-            $this->logger->error('File download/filesystem write failed: ' . $e->getMessage());
-            return FALSE;
-          }
-          return $file;
+        // If we have response content as attachment, let's just return that.
+        if (isset($responseContent['file'])) {
+          return $responseContent['file'];
         }
-
+        // If we have normal content, process that.
         if (isset($responseContent['results']) && is_array($responseContent['results'])) {
           $resultDocuments = [];
           foreach ($responseContent['results'] as $key => $value) {
