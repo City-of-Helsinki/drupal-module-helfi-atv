@@ -385,6 +385,32 @@ class AtvService {
   }
 
   /**
+   * Delete document from ATV.
+   *
+   * @param \Drupal\helfi_atv\AtvDocument $document
+   *   Document to be deleted.
+   *
+   * @return array|bool|\Drupal\file\FileInterface|\Drupal\helfi_atv\AtvDocument
+   *   If deletion succeeed.
+   *
+   * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
+   * @throws \Drupal\helfi_atv\AtvFailedToConnectException
+   * @throws \GuzzleHttp\Exception\GuzzleException
+   */
+  public function deleteDocument(AtvDocument $document) {
+    $url = $this->baseUrl . $document->getId() . '/';
+
+    return $this->doRequest(
+      'DELETE',
+      $url,
+      [
+        'headers' => $this->headers,
+      ]
+    );
+
+  }
+
+  /**
    * Delete document attachment from ATV.
    *
    * @param string $documentId
@@ -577,6 +603,12 @@ class AtvService {
 
       /** @var \GuzzleHttp\Psr7\Response */
       $response = $responseContent['response'];
+
+      if ($response->getStatusCode() == 204) {
+        if ($method == 'DELETE') {
+          return TRUE;
+        }
+      }
 
       // @todo Check if there's any point doing these if's here?!?!
       if ($response->getStatusCode() == 200) {
