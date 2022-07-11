@@ -439,6 +439,32 @@ class AtvService {
   }
 
   /**
+   * Delete document attachment from ATV via intagration Id.
+   *
+   * @param string $integrationId
+   *   Full URI of the attachment.
+   *
+   * @return array|bool|\Drupal\file\FileInterface|\Drupal\helfi_atv\AtvDocument
+   *   If removal succeeed.
+   *
+   * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
+   * @throws \Drupal\helfi_atv\AtvFailedToConnectException
+   * @throws \GuzzleHttp\Exception\GuzzleException
+   */
+  public function deleteAttachmentViaIntegrationId(string $integrationId): AtvDocument|bool|array|FileInterface {
+
+    $url = str_replace('/v1/documents/', '', $this->baseUrl) . $integrationId;
+
+    return $this->doRequest(
+      'DELETE',
+      $url,
+      [
+        'headers' => $this->headers,
+      ]
+    );
+  }
+
+  /**
    * Get single attachment.
    *
    * @param string $documentId
