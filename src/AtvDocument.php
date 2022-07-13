@@ -3,11 +3,12 @@
 namespace Drupal\helfi_atv;
 
 use Drupal\Component\Serialization\Json;
+use JsonSerializable;
 
 /**
  * Document model in ATV.
  */
-final class AtvDocument implements \JsonSerializable {
+final class AtvDocument implements JsonSerializable {
 
   /**
    * Document UUID.
@@ -138,6 +139,13 @@ final class AtvDocument implements \JsonSerializable {
   protected string $href;
 
   /**
+   * Type strings with translations.
+   *
+   * @var array
+   */
+  protected array $humanReadableType;
+
+  /**
    * Create ATVDocument object from given values.
    *
    * @param array $values
@@ -184,6 +192,9 @@ final class AtvDocument implements \JsonSerializable {
     }
     if (isset($values['draft'])) {
       $object->draft = $values['draft'];
+    }
+    if (isset($values['human_readable_type'])) {
+      $object->humanReadableType = $values['human_readable_type'];
     }
     if (isset($values['metadata'])) {
       // Make sure metadata is decoded if it's an string.
@@ -238,9 +249,9 @@ final class AtvDocument implements \JsonSerializable {
    *   Decoded JSON array.
    */
   public static function parseContent(string $contentString): mixed {
-    $replaced = str_replace("False", "false", $contentString);
-    $replaced = str_replace("True", "true", $replaced);
-    $replaced = str_replace("None", '"none"', $replaced);
+    $replaced = str_replace('False', 'false', $contentString);
+    $replaced = str_replace('True', 'true', $replaced);
+    $replaced = str_replace('None', '"none"', $replaced);
 
     return Json::decode($replaced);
   }
@@ -313,6 +324,9 @@ final class AtvDocument implements \JsonSerializable {
     }
     if (isset($this->metadata)) {
       $json_array['metadata'] = $this->getMetadata();
+    }
+    if (isset($this->humanReadableType)) {
+      $json_array['human_readable_type'] = $this->getHumanReadableType();
     }
     if (isset($this->content)) {
       $json_array['content'] = $this->getContent();
@@ -581,6 +595,20 @@ final class AtvDocument implements \JsonSerializable {
    */
   public function setTransactionId(string $transactionId): void {
     $this->transactionId = $transactionId;
+  }
+
+  /**
+   * @return array
+   */
+  public function getHumanReadableType(): array {
+    return $this->humanReadableType;
+  }
+
+  /**
+   * @param array $humanReadableType
+   */
+  public function setHumanReadableType(array $humanReadableType): void {
+    $this->humanReadableType = $humanReadableType;
   }
 
 }
