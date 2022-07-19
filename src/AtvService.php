@@ -78,6 +78,13 @@ class AtvService {
   protected string $appEnvironment;
 
   /**
+   * How many seconds is data cached.
+   *
+   * @var int
+   */
+  protected int $queryCacheTime;
+
+  /**
    * Constructs an AtvService object.
    *
    * @param \GuzzleHttp\ClientInterface $http_client
@@ -112,6 +119,14 @@ class AtvService {
 
     $this->appEnvironment = getenv('APP_ENV');
 
+    $qct = getenv('APP_QUERY_CACHE_TIME');
+
+    if ($qct) {
+      $this->queryCacheTime = intval($qct);
+    }
+    else {
+      $this->queryCacheTime = 0;
+    }
   }
 
   /**
@@ -474,7 +489,7 @@ class AtvService {
    * @param \Drupal\file\Entity\File $file
    *   File to be uploaded.
    *
-   * @return false|mixed
+   * @return mixed
    *   Did upload succeed?
    */
   public function uploadAttachment(string $documentId, string $filename, File $file): mixed {
@@ -714,9 +729,39 @@ class AtvService {
    * @return bool
    *   Is this cached?
    */
+  public function clearCache(string $key): bool {
+
+    try {
+      return $this->tempStore->delete($key);
+    }
+    catch (\Exception $e) {
+      return FALSE;
+    }
+  }
+
+  /**
+   * Whether or not we have made this query?
+   *
+   * @param string $key
+   *   Used key for caching.
+   *
+   * @return bool
+   *   Is this cached?
+   */
   public function isCached(string $key): bool {
     $tempStoreData = $this->tempStore->get('atv_service');
-    return isset($tempStoreData[$key]) && !empty($tempStoreData[$key]);
+
+    $now = time();
+
+    if (isset($tempStoreData[$key]) && !empty($tempStoreData[$key])) {
+      $dataArray = $tempStoreData[$key];
+      $timeDiff = $now - $dataArray['timestamp'];
+      if ($timeDiff < $this->queryCacheTime) {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
   }
 
   /**
@@ -730,7 +775,12 @@ class AtvService {
    */
   protected function getFromCache(string $key): mixed {
     $tempStoreData = $this->tempStore->get('atv_service');
-    return (isset($tempStoreData[$key]) && !empty($tempStoreData[$key])) ? $tempStoreData[$key] : NULL;
+
+    if (isset($tempStoreData[$key]) && !empty($tempStoreData[$key])) {
+      return $tempStoreData[$key]['data'];
+    }
+
+    return NULL;
   }
 
   /**
@@ -745,7 +795,14 @@ class AtvService {
    */
   protected function setToCache(string $key, array $data) {
     $tempStoreData = $this->tempStore->get('atv_service');
-    $tempStoreData[$key] = $data;
+
+    $cacheTime = time();
+
+    $tempStoreData[$key] = [
+      'data' => $data,
+      'timestamp' => $cacheTime,
+    ];
+
     $this->tempStore->set('atv_service', $tempStoreData);
   }
 
