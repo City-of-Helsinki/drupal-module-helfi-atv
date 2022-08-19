@@ -163,7 +163,7 @@ class AtvService {
     $url = $this->buildUrl($searchParams);
     $cacheKey = implode('-', $searchParams);
 
-    if ($this->useCache && $refetch === FALSE) {
+    if ($this->useCache && $refetch !== TRUE) {
       if ($this->isCached($cacheKey)) {
         return $this->getFromCache($cacheKey);
       }
