@@ -212,7 +212,7 @@ class AtvService {
   public function getUserDocuments(string $sub, string $transaction_id = ''): array {
     $params = [];
     if (!empty($transaction_id)) {
-      $params['transactionId'] = $transaction_id;
+      $params['transaction_id'] = $transaction_id;
     }
 
     $responseData = $this->doRequest(
