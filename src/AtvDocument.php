@@ -3,12 +3,11 @@
 namespace Drupal\helfi_atv;
 
 use Drupal\Component\Serialization\Json;
-use JsonSerializable;
 
 /**
  * Document model in ATV.
  */
-final class AtvDocument implements JsonSerializable {
+final class AtvDocument implements \JsonSerializable {
 
   /**
    * Document UUID.
@@ -37,6 +36,13 @@ final class AtvDocument implements JsonSerializable {
    * @var string
    */
   protected string $status;
+
+  /**
+   * Document status as array gotten from ATV.
+   *
+   * @var array
+   */
+  protected array $statusArray;
 
   /**
    * Document status history.
@@ -168,6 +174,7 @@ final class AtvDocument implements JsonSerializable {
     if (isset($values['status'])) {
       if (is_array($values['status'])) {
         $object->status = $values['status']['value'];
+        $object->statusArray = $values['status'];
       }
       else {
         $object->status = $values['status'];
@@ -303,6 +310,9 @@ final class AtvDocument implements JsonSerializable {
     if (isset($this->status)) {
       $json_array['status'] = $this->getStatus();
     }
+    if (isset($this->statusArray)) {
+      $json_array['statusArray'] = $this->getStatusArray();
+    }
     if (isset($this->type)) {
       $json_array['type'] = $this->getType();
     }
@@ -403,6 +413,16 @@ final class AtvDocument implements JsonSerializable {
    */
   public function getStatus(): string {
     return $this->status;
+  }
+
+  /**
+   * Get document status.
+   *
+   * @return string
+   *   Document status
+   */
+  public function getStatusArray(): array {
+    return $this->statusArray;
   }
 
   /**

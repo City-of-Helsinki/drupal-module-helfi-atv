@@ -85,6 +85,13 @@ class AtvService {
   protected int $queryCacheTime;
 
   /**
+   * Atv version to use.
+   *
+   * @var string
+   */
+  protected string $atvVersion;
+
+  /**
    * Constructs an AtvService object.
    *
    * @param \GuzzleHttp\ClientInterface $http_client
@@ -111,6 +118,9 @@ class AtvService {
 
     // @todo figure out tunnistamo based auth to atv
     $this->baseUrl = getenv('ATV_BASE_URL');
+    $this->atvVersion = getenv('ATV_VERSION');
+
+    // v1/documents/
 
     $this->fileRepository = $fileRepository;
     $this->tempStore = $tempstore->get('atv_service');
@@ -160,7 +170,6 @@ class AtvService {
    */
   public function searchDocuments(array $searchParams, bool $refetch = FALSE): array {
 
-    $url = $this->buildUrl($searchParams);
     $cacheKey = implode('-', $searchParams);
 
     if ($this->useCache && $refetch !== TRUE) {
@@ -171,7 +180,7 @@ class AtvService {
 
     $responseData = $this->doRequest(
       'GET',
-      $url,
+      $this->buildUrl('documents', $searchParams),
       [
         'headers' => $this->headers,
       ]
@@ -190,16 +199,47 @@ class AtvService {
   }
 
   /**
+   * Get metadata for user's documents.
+   *
+   * If transaction id is given, then use that as a filter. If no value is given,
+   * then get metadata of all user's documents.
+   *
+   * @param string $sub
+   *   User id whose documents are fetched.
+   * @param string $transaction_id
+   *   Transaction id from document.
+   */
+  public function getUserDocuments(string $sub, string $transaction_id = ''): array {
+    $params = [];
+    if (!empty($transaction_id)) {
+      $params['transactionId'] = $transaction_id;
+    }
+
+    $responseData = $this->doRequest(
+      'GET',
+      $this->buildUrl('userdocuments/' . $sub, $params),
+      [
+        'headers' => $this->headers,
+      ]
+    );
+
+    return $responseData['results'] ?? [];
+  }
+
+  /**
    * Build request url with params.
    *
+   * @param string $endpoint
+   *   Endpoint only.
    * @param array $params
    *   Params for url.
    *
    * @return string
    *   Built url
    */
-  private function buildUrl(array $params): string {
-    $newUrl = $this->baseUrl;
+  private function buildUrl(string $endpoint, array $params = []): string {
+
+    $newUrl = $this->baseUrl . '/' . $this->atvVersion . '/' . $endpoint;
 
     if (!empty($params)) {
       $paramCounter = 1;
@@ -246,7 +286,7 @@ class AtvService {
 
     $response = $this->doRequest(
       'GET',
-      $this->baseUrl . $id,
+      $this->buildUrl('documents'),
       [
         'headers' => $this->headers,
       ]
@@ -316,7 +356,6 @@ class AtvService {
    * @throws \GuzzleHttp\Exception\GuzzleException
    */
   public function postDocument(AtvDocument $document): AtvDocument {
-    $postUrl = $this->baseUrl;
 
     $formData = $this->arrayToFormData($document->toArray());
 
@@ -328,7 +367,7 @@ class AtvService {
 
     $response = $this->doRequest(
       'POST',
-      $postUrl,
+      $this->buildUrl('documents'),
       $opts
     );
 
@@ -351,11 +390,7 @@ class AtvService {
    * @throws \GuzzleHttp\Exception\GuzzleException
    */
   public function patchDocument(string $id, array $dataArray): bool|AtvDocument|NULL {
-    $patchUrl = $this->baseUrl . $id;
-
-    if (!str_ends_with($patchUrl, '/') && !str_contains($patchUrl, '?')) {
-      $patchUrl = $patchUrl . '/';
-    }
+    $patchUrl = 'documents/' . $id;
 
     $formData = $this->arrayToFormData($dataArray);
 
@@ -367,7 +402,7 @@ class AtvService {
 
     $results = $this->doRequest(
       'PATCH',
-      $patchUrl,
+      $this->buildUrl($patchUrl),
       $opts
     );
 
@@ -413,11 +448,11 @@ class AtvService {
    * @throws \GuzzleHttp\Exception\GuzzleException
    */
   public function deleteDocument(AtvDocument $document) {
-    $url = $this->baseUrl . $document->getId() . '/';
+    $urlBits = 'documents/' . $document->getId();
 
     return $this->doRequest(
       'DELETE',
-      $url,
+      $this->buildUrl($urlBits),
       [
         'headers' => $this->headers,
       ]
@@ -442,11 +477,11 @@ class AtvService {
    */
   public function deleteAttachment(string $documentId, string $attachmentId): AtvDocument|bool|array|FileInterface {
 
-    $url = $this->baseUrl . $documentId . '/attachments/' . $attachmentId . '/';
+    $url = 'documents/' . $documentId . '/attachments/' . $attachmentId;
 
     return $this->doRequest(
       'DELETE',
-      $url,
+      $this->buildUrl($url),
       [
         'headers' => $this->headers,
       ]
@@ -468,11 +503,9 @@ class AtvService {
    */
   public function deleteAttachmentViaIntegrationId(string $integrationId): AtvDocument|bool|array|FileInterface {
 
-    $url = str_replace('/v1/documents/', '', $this->baseUrl) . $integrationId;
-
     return $this->doRequest(
       'DELETE',
-      $url,
+      $this->baseUrl . '/' . $integrationId,
       [
         'headers' => $this->headers,
       ]
@@ -493,8 +526,6 @@ class AtvService {
    *   Did upload succeed?
    */
   public function uploadAttachment(string $documentId, string $filename, File $file): mixed {
-
-    $attachmentUrl = $this->baseUrl . $documentId . '/attachments/';
 
     $headers = $this->headers;
     $headers['Content-Disposition'] = 'attachment; filename="' . $filename . '"';
@@ -517,7 +548,7 @@ class AtvService {
     try {
       $retval = $this->doRequest(
         'POST',
-        $attachmentUrl,
+        $this->buildUrl('documents/' . $documentId . '/attachments'),
         [
           'headers' => $headers,
           'multipart' => [$data],
