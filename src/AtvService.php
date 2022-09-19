@@ -239,7 +239,14 @@ class AtvService {
    */
   private function buildUrl(string $endpoint, array $params = []): string {
 
-    $newUrl = $this->baseUrl . '/' . $this->atvVersion . '/' . $endpoint;
+    // it seems that something adds ending slash on platta
+    // this will make sure theres only one slash.
+    if (str_ends_with($this->baseUrl, '/')) {
+      $newUrl = $this->baseUrl . $this->atvVersion . '/' . $endpoint;
+    }
+    else {
+      $newUrl = $this->baseUrl . '/' . $this->atvVersion . '/' . $endpoint;
+    }
 
     if (!empty($params)) {
       $paramCounter = 1;
