@@ -10,6 +10,7 @@ use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
 use Drupal\file\FileRepository;
+use Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData;
 use GuzzleHttp\ClientInterface;
 use Drupal\Component\Serialization\Json;
 use GuzzleHttp\Exception\GuzzleException;
@@ -92,6 +93,13 @@ class AtvService {
   protected string $atvVersion;
 
   /**
+   * Helsinki profiili data.
+   *
+   * @var \Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData
+   */
+  protected HelsinkiProfiiliUserData $helsinkiProfiiliUserData;
+
+  /**
    * Constructs an AtvService object.
    *
    * @param \GuzzleHttp\ClientInterface $http_client
@@ -102,25 +110,41 @@ class AtvService {
    *   Access to filesystem.
    * @param \Drupal\Core\TempStore\PrivateTempStoreFactory $tempstore
    *   Tempstore to save responses.
+   * @param \Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData $helsinkiProfiiliUserData
+   *    Helsinkiprofiili
    */
   public function __construct(
-    ClientInterface $http_client,
-    LoggerChannelFactory $loggerFactory,
-    FileRepository $fileRepository,
-    PrivateTempStoreFactory $tempstore
+    ClientInterface          $http_client,
+    LoggerChannelFactory     $loggerFactory,
+    FileRepository           $fileRepository,
+    PrivateTempStoreFactory  $tempstore,
+    HelsinkiProfiiliUserData $helsinkiProfiiliUserData
   ) {
     $this->httpClient = $http_client;
     $this->logger = $loggerFactory->get('helfi_atv');
 
-    $this->headers = [
-      'X-Api-Key' => getenv('ATV_API_KEY'),
-    ];
+    $this->helsinkiProfiiliUserData = $helsinkiProfiiliUserData;
+
+    if (getenv('ATV_USE_TOKEN_AUTH') == 'true') {
+      try {
+        $tokens = $this->helsinkiProfiiliUserData->getApiAccessTokens();
+        if (is_array($tokens)) {
+          $this->headers = [
+            'Authorization' => 'Bearer ' . $tokens['https://api.hel.fi/auth/atvapidev'],
+          ];
+        }
+      } catch (\Exception $e) {
+        $this->logger->error('%error', ['%error' => $e->getMessage()]);
+      }
+    } else {
+      $this->headers = [
+        'X-Api-Key' => getenv('ATV_API_KEY'),
+      ];
+    }
 
     // @todo figure out tunnistamo based auth to atv
     $this->baseUrl = getenv('ATV_BASE_URL');
     $this->atvVersion = getenv('ATV_VERSION');
-
-    // v1/documents/
 
     $this->fileRepository = $fileRepository;
     $this->tempStore = $tempstore->get('atv_service');
@@ -201,13 +225,18 @@ class AtvService {
   /**
    * Get metadata for user's documents.
    *
-   * If transaction id is given, then use that as a filter. If no value is given,
-   * then get metadata of all user's documents.
+   * If transaction id is given, then use that as a filter. If no value is
+   * given, then get metadata of all user's documents.
    *
    * @param string $sub
    *   User id whose documents are fetched.
    * @param string $transaction_id
    *   Transaction id from document.
+   *
+   * @return array
+   * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
+   * @throws \Drupal\helfi_atv\AtvFailedToConnectException
+   * @throws \GuzzleHttp\Exception\GuzzleException
    */
   public function getUserDocuments(string $sub, string $transaction_id = ''): array {
     $params = [];
@@ -219,7 +248,9 @@ class AtvService {
       'GET',
       $this->buildUrl('userdocuments/' . $sub, $params),
       [
-        'headers' => $this->headers,
+        'headers' => [
+          'X-Api-Key' => getenv('ATV_API_KEY'),
+        ],
       ]
     );
 
@@ -396,7 +427,7 @@ class AtvService {
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
    * @throws \GuzzleHttp\Exception\GuzzleException
    */
-  public function patchDocument(string $id, array $dataArray): bool|AtvDocument|NULL {
+  public function patchDocument(string $id, array $dataArray): bool|AtvDocument|null {
     $patchUrl = 'documents/' . $id;
 
     $formData = $this->arrayToFormData($dataArray);
@@ -563,8 +594,7 @@ class AtvService {
       );
 
       return $retval['id'] ?? FALSE;
-    }
-    catch (AtvDocumentNotFoundException | AtvFailedToConnectException | GuzzleException $e) {
+    } catch (AtvDocumentNotFoundException|AtvFailedToConnectException|GuzzleException $e) {
       $this->logger->error($e->getMessage());
       return FALSE;
     }
@@ -613,8 +643,7 @@ class AtvService {
           'private://grants_profile/' . $filename,
           FileSystemInterface::EXISTS_REPLACE
         );
-      }
-      catch (EntityStorageException $e) {
+      } catch (EntityStorageException $e) {
         // If fails, log error & return false.
         $this->logger->error('File download/filesystem write failed: ' . $e->getMessage());
       }
@@ -671,7 +700,7 @@ class AtvService {
   private function doRequest(
     string $method,
     string $url,
-    array $options
+    array  $options
   ): array|AtvDocument|bool|FileInterface {
     try {
       $responseContent = $this->request(
@@ -740,8 +769,7 @@ class AtvService {
         return $bodyContents;
       }
       return FALSE;
-    }
-    catch (ServerException | GuzzleException $e) {
+    } catch (ServerException|GuzzleException $e) {
 
       $msg = $e->getMessage();
       $this->logger->error($msg);
@@ -771,8 +799,7 @@ class AtvService {
 
     try {
       return $this->tempStore->delete($key);
-    }
-    catch (\Exception $e) {
+    } catch (\Exception $e) {
       return FALSE;
     }
   }
