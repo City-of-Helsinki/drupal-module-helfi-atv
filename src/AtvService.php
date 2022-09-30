@@ -93,6 +93,13 @@ class AtvService {
   protected string $atvVersion;
 
   /**
+   * ATV service name string
+   *
+   * @var string
+   */
+  protected string $atvServiceName;
+
+  /**
    * Helsinki profiili data.
    *
    * @var \Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData
@@ -152,6 +159,7 @@ class AtvService {
     $this->useCache = getenv('ATV_USE_CACHE');
 
     $this->appEnvironment = getenv('APP_ENV');
+    $this->atvServiceName = getenv('ATV_SERVICE');
 
     $qct = getenv('APP_QUERY_CACHE_TIME');
 
@@ -430,6 +438,10 @@ class AtvService {
   public function patchDocument(string $id, array $dataArray): bool|AtvDocument|null {
     $patchUrl = 'documents/' . $id;
 
+    // ATV does not allow user_id in PATCHed documents.
+    if (isset($dataArray['user_id'])) {
+      unset($dataArray['user_id']);
+    }
     $formData = $this->arrayToFormData($dataArray);
 
     $opts = [
@@ -444,7 +456,13 @@ class AtvService {
       $opts
     );
 
-    return reset($results['results']);
+    $updatedDocument = reset($results['results']);
+
+    if ($this->useCache && $updatedDocument) {
+      $this->setToCache($dataArray["transaction_id"], [$updatedDocument]);
+    }
+
+    return $updatedDocument;
   }
 
   /**
@@ -543,7 +561,7 @@ class AtvService {
 
     return $this->doRequest(
       'DELETE',
-      $this->baseUrl . '/' . $integrationId,
+      $this->baseUrl . $integrationId,
       [
         'headers' => $this->headers,
       ]
@@ -551,7 +569,7 @@ class AtvService {
   }
 
   /**
-   * Get single attachment.
+   * Upload single attachment.
    *
    * @param string $documentId
    *   Id of the document for this attachment.
@@ -562,6 +580,9 @@ class AtvService {
    *
    * @return mixed
    *   Did upload succeed?
+   * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
+   * @throws \Drupal\helfi_atv\AtvFailedToConnectException
+   * @throws \GuzzleHttp\Exception\GuzzleException
    */
   public function uploadAttachment(string $documentId, string $filename, File $file): mixed {
 
@@ -583,22 +604,20 @@ class AtvService {
       'contents' => $body,
     ];
 
-    try {
-      $retval = $this->doRequest(
-        'POST',
-        $this->buildUrl('documents/' . $documentId . '/attachments'),
-        [
-          'headers' => $headers,
-          'multipart' => [$data],
-        ]
-      );
+    $retval = $this->doRequest(
+      'POST',
+      $this->buildUrl('documents/' . $documentId . '/attachments'),
+      [
+        'headers' => $headers,
+        'multipart' => [$data],
+      ]
+    );
 
-      return $retval['id'] ?? FALSE;
-    } catch (AtvDocumentNotFoundException|AtvFailedToConnectException|GuzzleException $e) {
-      $this->logger->error($e->getMessage());
+    if (empty($retval)) {
       return FALSE;
     }
-    return FALSE;
+
+    return $retval;
   }
 
   /**
@@ -853,12 +872,12 @@ class AtvService {
    *
    * @param string $key
    *   Used key for caching.
-   * @param array $data
+   * @param mixed $data
    *   Cached data.
    *
    * @throws \Drupal\Core\TempStore\TempStoreException
    */
-  protected function setToCache(string $key, array $data) {
+  protected function setToCache(string $key, mixed $data) {
     $tempStoreData = $this->tempStore->get('atv_service');
 
     $cacheTime = time();

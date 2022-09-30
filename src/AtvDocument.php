@@ -295,9 +295,7 @@ final class AtvDocument implements \JsonSerializable {
     if (isset($this->id)) {
       $json_array['id'] = $this->id;
     }
-    // If (isset($this->service)) {
-    // $json_array['service'] = $this->service;
-    // }.
+
     if (isset($this->userId)) {
       $json_array['user_id'] = $this->getUserId();
     }
@@ -340,6 +338,9 @@ final class AtvDocument implements \JsonSerializable {
     }
     if (isset($this->content)) {
       $json_array['content'] = $this->getContent();
+    }
+    if (isset($this->draft)) {
+      $json_array['draft'] = $this->getDraft();
     }
 
     return $json_array;
@@ -514,16 +515,25 @@ final class AtvDocument implements \JsonSerializable {
   public function setStatus(string $status): void {
     $this->status = $status;
   }
+  /**
+   * Set document type.
+   *
+   * @param string $type
+   *   Type string from application form type
+   */
+  public function setType(string $type): void {
+    $this->type = $type;
+  }
 
   /**
    * Set metadata.
    *
    * @param string $key
    *   Metadata key.
-   * @param array $value
+   * @param mixed $value
    *   Metadata value for given key.
    */
-  public function addMetadata(string $key, array $value): void {
+  public function addMetadata(string $key, mixed $value): void {
     $this->metadata[$key] = $value;
   }
 
@@ -629,6 +639,48 @@ final class AtvDocument implements \JsonSerializable {
    */
   public function setHumanReadableType(array $humanReadableType): void {
     $this->humanReadableType = $humanReadableType;
+  }
+
+  /**
+   * @param string $service
+   */
+  public function setService(string $service): void {
+    $this->service = $service;
+  }
+
+  /**
+   * @param string $userId
+   */
+  public function setUserId(string $userId): void {
+    $this->userId = $userId;
+  }
+
+  /**
+   * @param string $tosFunctionId
+   */
+  public function setTosFunctionId(string $tosFunctionId): void {
+    $this->tosFunctionId = $tosFunctionId;
+  }
+
+  /**
+   * @param string $tosRecordId
+   */
+  public function setTosRecordId(string $tosRecordId): void {
+    $this->tosRecordId = $tosRecordId;
+  }
+
+  /**
+   * @param string $businessId
+   */
+  public function setBusinessId(string $businessId): void {
+    $this->businessId = $businessId;
+  }
+
+  /**
+   * @param bool $draft
+   */
+  public function setDraft(bool $draft): void {
+    $this->draft = $draft;
   }
 
 }
