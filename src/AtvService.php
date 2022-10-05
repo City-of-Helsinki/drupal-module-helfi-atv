@@ -107,6 +107,13 @@ class AtvService {
   protected HelsinkiProfiiliUserData $helsinkiProfiiliUserData;
 
   /**
+   * Debug status.
+   *
+   * @var bool
+   */
+  protected bool $debug;
+
+  /**
    * Constructs an AtvService object.
    *
    * @param \GuzzleHttp\ClientInterface $http_client
@@ -142,8 +149,11 @@ class AtvService {
         }
       } catch (\Exception $e) {
         $this->logger->error('%error', ['%error' => $e->getMessage()]);
+      } catch (GuzzleException $e) {
+        $this->logger->error('%error', ['%error' => $e->getMessage()]);
       }
-    } else {
+    }
+    else {
       $this->headers = [
         'X-Api-Key' => getenv('ATV_API_KEY'),
       ];
@@ -169,6 +179,8 @@ class AtvService {
     else {
       $this->queryCacheTime = 0;
     }
+
+    $this->debug = getenv('debug');
   }
 
   /**
@@ -202,6 +214,11 @@ class AtvService {
    */
   public function searchDocuments(array $searchParams, bool $refetch = FALSE): array {
 
+    $requestStartTime = 0;
+    if ($this->isDebug()) {
+      $requestStartTime = floor(microtime(true) * 1000);;
+    }
+
     $cacheKey = implode('-', $searchParams);
 
     if ($this->useCache && $refetch !== TRUE) {
@@ -225,6 +242,14 @@ class AtvService {
 
     if ($this->useCache) {
       $this->setToCache($cacheKey, $responseData['results']);
+    }
+
+    if ($this->isDebug()) {
+      $requestEndTime = floor(microtime(true) * 1000);;
+      $this->logger->debug('Search documents with @key took @ms ms', [
+        '@key' => $cacheKey,
+        '@ms' => $requestEndTime - $requestStartTime,
+      ]);
     }
 
     return $responseData['results'];
@@ -571,6 +596,9 @@ class AtvService {
   /**
    * Upload single attachment.
    *
+   * File has to be saved to managed files for easier processing. Make sure file
+   * is deleted after since this method does not delete.
+   *
    * @param string $documentId
    *   Id of the document for this attachment.
    * @param string $filename
@@ -639,11 +667,24 @@ class AtvService {
    */
   protected function request(string $method, string $url, array $options, array $prevRes = []): array {
 
+    $requestStartTime = 0;
+    if ($this->isDebug()) {
+      $requestStartTime = floor(microtime(true) * 1000);;
+    }
     $resp = $this->httpClient->request(
       $method,
       $url,
       $options
     );
+
+    if ($this->isDebug()) {
+      $requestEndTime = floor(microtime(true) * 1000);;
+      $this->logger->debug('ATV @method query @url took @ms ms', [
+        '@method' => $method,
+        '@url' => $url,
+        '@ms' => $requestEndTime - $requestStartTime,
+      ]);
+    }
 
     // Handle file download situation.
     $contentDisposition = $resp->getHeader('content-disposition');
@@ -722,6 +763,8 @@ class AtvService {
     array  $options
   ): array|AtvDocument|bool|FileInterface {
     try {
+
+
       $responseContent = $this->request(
         $method,
         $url,
@@ -861,6 +904,9 @@ class AtvService {
     $tempStoreData = $this->tempStore->get('atv_service');
 
     if (isset($tempStoreData[$key]) && !empty($tempStoreData[$key])) {
+      if ($this->isDebug()) {
+        $this->logger->debug('Request cache found @key', ['@key' => $key]);
+      }
       return $tempStoreData[$key]['data'];
     }
 
@@ -887,7 +933,25 @@ class AtvService {
       'timestamp' => $cacheTime,
     ];
 
+    if ($this->isDebug()) {
+      $this->logger->debug('Request updated @key', ['@key' => $key]);
+    }
+
     $this->tempStore->set('atv_service', $tempStoreData);
+  }
+
+  /**
+   * @return bool
+   */
+  public function isDebug(): bool {
+    return $this->debug;
+  }
+
+  /**
+   * @param bool $debug
+   */
+  public function setDebug(bool $debug): void {
+    $this->debug = $debug;
   }
 
 }
