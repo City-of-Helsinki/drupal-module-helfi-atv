@@ -1,4 +1,10 @@
 services:
   helfi_atv.atv_service:
     class: Drupal\helfi_atv\AtvService
-    arguments: ['@http_client', '@logger.factory', '@file.repository', '@tempstore.private', '@helfi_helsinki_profiili.userdata']
+    arguments: [
+      '@http_client',
+      '@logger.factory',
+      '@file.repository',
+      '@tempstore.private',
+      '@helfi_helsinki_profiili.userdata'
+    ]

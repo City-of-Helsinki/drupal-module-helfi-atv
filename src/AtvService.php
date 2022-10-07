@@ -16,6 +16,7 @@ use Drupal\Component\Serialization\Json;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\Psr7\Utils;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * Communicate with ATV.
@@ -114,6 +115,13 @@ class AtvService {
   protected bool $debug;
 
   /**
+   * Token name to use with atv.
+   *
+   * @var string
+   */
+  protected string $atvTokenName;
+
+  /**
    * Constructs an AtvService object.
    *
    * @param \GuzzleHttp\ClientInterface $http_client
@@ -126,6 +134,8 @@ class AtvService {
    *   Tempstore to save responses.
    * @param \Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData $helsinkiProfiiliUserData
    *    Helsinkiprofiili
+   *
+   * @throws \GuzzleHttp\Exception\GuzzleException
    */
   public function __construct(
     ClientInterface          $http_client,
@@ -137,50 +147,87 @@ class AtvService {
     $this->httpClient = $http_client;
     $this->logger = $loggerFactory->get('helfi_atv');
 
-    $this->helsinkiProfiiliUserData = $helsinkiProfiiliUserData;
-
-    if (getenv('ATV_USE_TOKEN_AUTH') == 'true') {
-      try {
-        $tokens = $this->helsinkiProfiiliUserData->getApiAccessTokens();
-        if (is_array($tokens)) {
-          $this->headers = [
-            'Authorization' => 'Bearer ' . $tokens['https://api.hel.fi/auth/atvapidev'],
-          ];
-        }
-      } catch (\Exception $e) {
-        $this->logger->error('%error', ['%error' => $e->getMessage()]);
-      } catch (GuzzleException $e) {
-        $this->logger->error('%error', ['%error' => $e->getMessage()]);
-      }
-    }
-    else {
-      $this->headers = [
-        'X-Api-Key' => getenv('ATV_API_KEY'),
-      ];
-    }
-
-    // @todo figure out tunnistamo based auth to atv
     $this->baseUrl = getenv('ATV_BASE_URL');
     $this->atvVersion = getenv('ATV_VERSION');
-
-    $this->fileRepository = $fileRepository;
-    $this->tempStore = $tempstore->get('atv_service');
-
     $this->useCache = getenv('ATV_USE_CACHE');
 
     $this->appEnvironment = getenv('APP_ENV');
     $this->atvServiceName = getenv('ATV_SERVICE');
 
-    $qct = getenv('APP_QUERY_CACHE_TIME');
+    $queryCacheTime = getenv('APP_QUERY_CACHE_TIME');
 
-    if ($qct) {
-      $this->queryCacheTime = intval($qct);
+    $tokenName = getenv('ATV_TOKEN_NAME');
+    if (!empty($tokenName)) {
+      $this->atvTokenName = $tokenName;
+    }
+    else {
+      throw new AtvAuthFailedException('No auth token name set.');
+    }
+
+
+    $this->helsinkiProfiiliUserData = $helsinkiProfiiliUserData;
+
+    // Here we figure out if user has HP user or ADMIN, and if user has admin
+    // role but no user role then we use apikey for authenticating user.
+
+    $userRoles = $this->helsinkiProfiiliUserData->getCurrentUser()->getRoles();
+    $adminRoles = explode(',', getenv('ADMIN_USER_ROLES'));
+    $hpRoles = explode(',', getenv('HP_USER_ROLES'));
+
+    if (in_array('admin', $userRoles)) {
+      return;
+    }
+
+    // has user admin role?
+    $hasAdminRole = array_reduce($userRoles,
+      function ($carry, $value) use ($adminRoles) {
+        if (in_array($value, $adminRoles)) {
+          return TRUE;
+        }
+      },
+      FALSE,
+    );
+    // what about helsinki profile role then?
+    $hasHpRole = array_reduce($userRoles,
+      function ($carry, $value) use ($hpRoles) {
+        if (in_array($value, $hpRoles)) {
+          return TRUE;
+        }
+      },
+      FALSE,
+    );
+
+    // if user does not have admin role but has user role, use token based auth
+    if ($hasAdminRole != TRUE && $hasHpRole == TRUE) {
+      $tokens = $this->helsinkiProfiiliUserData->getApiAccessTokens();
+      if (is_array($tokens) && isset($tokens['https://api.hel.fi/auth/atvapidev'])) {
+        $this->headers = [
+          'Authorization' => 'Bearer ' . $tokens['https://api.hel.fi/auth/atvapidev'],
+        ];
+      }
+    }
+    // if user has admin role, then use apikey
+    elseif ($hasAdminRole == TRUE) {
+      $this->headers = [
+        'X-Api-Key' => getenv('ATV_API_KEY'),
+      ];
+    }
+    // neither -> error.
+    else {
+//      throw new AtvAuthFailedException('No access to ATV');
+    }
+
+    $this->fileRepository = $fileRepository;
+    $this->tempStore = $tempstore->get('atv_service');
+
+    if ($queryCacheTime) {
+      $this->queryCacheTime = intval($queryCacheTime);
     }
     else {
       $this->queryCacheTime = 0;
     }
 
-    $this->debug = getenv('debug');
+    $this->debug = getenv('DEBUG');
   }
 
   /**
@@ -216,7 +263,7 @@ class AtvService {
 
     $requestStartTime = 0;
     if ($this->isDebug()) {
-      $requestStartTime = floor(microtime(true) * 1000);;
+      $requestStartTime = floor(microtime(TRUE) * 1000);;
     }
 
     $cacheKey = implode('-', $searchParams);
@@ -245,7 +292,7 @@ class AtvService {
     }
 
     if ($this->isDebug()) {
-      $requestEndTime = floor(microtime(true) * 1000);;
+      $requestEndTime = floor(microtime(TRUE) * 1000);;
       $this->logger->debug('Search documents with @key took @ms ms', [
         '@key' => $cacheKey,
         '@ms' => $requestEndTime - $requestStartTime,
@@ -357,7 +404,7 @@ class AtvService {
 
     $response = $this->doRequest(
       'GET',
-      $this->buildUrl('documents'),
+      $this->buildUrl('documents/' . $id),
       [
         'headers' => $this->headers,
       ]
@@ -669,7 +716,7 @@ class AtvService {
 
     $requestStartTime = 0;
     if ($this->isDebug()) {
-      $requestStartTime = floor(microtime(true) * 1000);;
+      $requestStartTime = floor(microtime(TRUE) * 1000);;
     }
     $resp = $this->httpClient->request(
       $method,
@@ -678,7 +725,7 @@ class AtvService {
     );
 
     if ($this->isDebug()) {
-      $requestEndTime = floor(microtime(true) * 1000);;
+      $requestEndTime = floor(microtime(TRUE) * 1000);;
       $this->logger->debug('ATV @method query @url took @ms ms', [
         '@method' => $method,
         '@url' => $url,
