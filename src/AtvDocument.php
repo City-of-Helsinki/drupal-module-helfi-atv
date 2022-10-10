@@ -515,11 +515,12 @@ final class AtvDocument implements \JsonSerializable {
   public function setStatus(string $status): void {
     $this->status = $status;
   }
+
   /**
    * Set document type.
    *
    * @param string $type
-   *   Type string from application form type
+   *   Type string from application form type.
    */
   public function setType(string $type): void {
     $this->type = $type;
@@ -628,56 +629,80 @@ final class AtvDocument implements \JsonSerializable {
   }
 
   /**
+   * Return huban readable type.
+   *
    * @return array
+   *   Type.
    */
   public function getHumanReadableType(): array {
     return $this->humanReadableType;
   }
 
   /**
+   * Set human readable type.
+   *
    * @param array $humanReadableType
+   *   Set type.
    */
   public function setHumanReadableType(array $humanReadableType): void {
     $this->humanReadableType = $humanReadableType;
   }
 
   /**
+   * Set service.
+   *
    * @param string $service
+   *   Service.
    */
   public function setService(string $service): void {
     $this->service = $service;
   }
 
   /**
+   * Set user id.
+   *
    * @param string $userId
+   *   User id.
    */
   public function setUserId(string $userId): void {
     $this->userId = $userId;
   }
 
   /**
+   * Set TOS function.
+   *
    * @param string $tosFunctionId
+   *   Tos function ID.
    */
   public function setTosFunctionId(string $tosFunctionId): void {
     $this->tosFunctionId = $tosFunctionId;
   }
 
   /**
+   * Set Record ID.
+   *
    * @param string $tosRecordId
+   *   Record.
    */
   public function setTosRecordId(string $tosRecordId): void {
     $this->tosRecordId = $tosRecordId;
   }
 
   /**
+   * Set business ID.
+   *
    * @param string $businessId
+   *   Business id.
    */
   public function setBusinessId(string $businessId): void {
     $this->businessId = $businessId;
   }
 
   /**
+   * Set draft.
+   *
    * @param bool $draft
+   *   Is draft true/false.
    */
   public function setDraft(bool $draft): void {
     $this->draft = $draft;

@@ -16,7 +16,6 @@ use Drupal\Component\Serialization\Json;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\Psr7\Utils;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * Communicate with ATV.
@@ -94,7 +93,7 @@ class AtvService {
   protected string $atvVersion;
 
   /**
-   * ATV service name string
+   * ATV service name string.
    *
    * @var string
    */
@@ -133,15 +132,15 @@ class AtvService {
    * @param \Drupal\Core\TempStore\PrivateTempStoreFactory $tempstore
    *   Tempstore to save responses.
    * @param \Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData $helsinkiProfiiliUserData
-   *    Helsinkiprofiili
+   *   Helsinkiprofiili.
    *
    * @throws \GuzzleHttp\Exception\GuzzleException
    */
   public function __construct(
-    ClientInterface          $http_client,
-    LoggerChannelFactory     $loggerFactory,
-    FileRepository           $fileRepository,
-    PrivateTempStoreFactory  $tempstore,
+    ClientInterface $http_client,
+    LoggerChannelFactory $loggerFactory,
+    FileRepository $fileRepository,
+    PrivateTempStoreFactory $tempstore,
     HelsinkiProfiiliUserData $helsinkiProfiiliUserData
   ) {
     $this->httpClient = $http_client;
@@ -164,12 +163,10 @@ class AtvService {
       throw new AtvAuthFailedException('No auth token name set.');
     }
 
-
     $this->helsinkiProfiiliUserData = $helsinkiProfiiliUserData;
 
     // Here we figure out if user has HP user or ADMIN, and if user has admin
     // role but no user role then we use apikey for authenticating user.
-
     $userRoles = $this->helsinkiProfiiliUserData->getCurrentUser()->getRoles();
     $adminRoles = explode(',', getenv('ADMIN_USER_ROLES'));
     $hpRoles = explode(',', getenv('HP_USER_ROLES'));
@@ -178,7 +175,7 @@ class AtvService {
       return;
     }
 
-    // has user admin role?
+    // Has user admin role?
     $hasAdminRole = array_reduce($userRoles,
       function ($carry, $value) use ($adminRoles) {
         if (in_array($value, $adminRoles)) {
@@ -187,7 +184,7 @@ class AtvService {
       },
       FALSE,
     );
-    // what about helsinki profile role then?
+    // What about helsinki profile role then?
     $hasHpRole = array_reduce($userRoles,
       function ($carry, $value) use ($hpRoles) {
         if (in_array($value, $hpRoles)) {
@@ -197,24 +194,33 @@ class AtvService {
       FALSE,
     );
 
-    // if user does not have admin role but has user role, use token based auth
+    // If user does not have admin role but has user role, use token based auth.
     if ($hasAdminRole != TRUE && $hasHpRole == TRUE) {
+
       $tokens = $this->helsinkiProfiiliUserData->getApiAccessTokens();
       if (is_array($tokens) && isset($tokens['https://api.hel.fi/auth/atvapidev'])) {
+
+        $this->logger->debug('ATV Token auth, got tokens: @tokens', ['@tokens' => implode(',', array_keys($tokens))]);
+
         $this->headers = [
           'Authorization' => 'Bearer ' . $tokens['https://api.hel.fi/auth/atvapidev'],
         ];
       }
     }
-    // if user has admin role, then use apikey
+    // If user has admin role, then use apikey.
     elseif ($hasAdminRole == TRUE) {
+
+      $this->logger->debug('ATV APIKEY auth, admin roles: @tokens', ['@tokens' => implode(',', array_keys($adminRoles))]);
+
       $this->headers = [
         'X-Api-Key' => getenv('ATV_API_KEY'),
       ];
     }
-    // neither -> error.
+    // Neither -> error.
     else {
-//      throw new AtvAuthFailedException('No access to ATV');
+      $this->headers = [];
+      $this->logger->error('No access to ATV. No token or no admin');
+      throw new AtvAuthFailedException('No access to ATV');
     }
 
     $this->fileRepository = $fileRepository;
@@ -263,7 +269,8 @@ class AtvService {
 
     $requestStartTime = 0;
     if ($this->isDebug()) {
-      $requestStartTime = floor(microtime(TRUE) * 1000);;
+      $requestStartTime = floor(microtime(TRUE) * 1000);
+      ;
     }
 
     $cacheKey = implode('-', $searchParams);
@@ -292,7 +299,8 @@ class AtvService {
     }
 
     if ($this->isDebug()) {
-      $requestEndTime = floor(microtime(TRUE) * 1000);;
+      $requestEndTime = floor(microtime(TRUE) * 1000);
+      ;
       $this->logger->debug('Search documents with @key took @ms ms', [
         '@key' => $cacheKey,
         '@ms' => $requestEndTime - $requestStartTime,
@@ -314,6 +322,8 @@ class AtvService {
    *   Transaction id from document.
    *
    * @return array
+   *   User documents' public data
+   *
    * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
    * @throws \GuzzleHttp\Exception\GuzzleException
@@ -350,7 +360,7 @@ class AtvService {
    */
   private function buildUrl(string $endpoint, array $params = []): string {
 
-    // it seems that something adds ending slash on platta
+    // It seems that something adds ending slash on platta
     // this will make sure theres only one slash.
     if (str_ends_with($this->baseUrl, '/')) {
       $newUrl = $this->baseUrl . $this->atvVersion . '/' . $endpoint;
@@ -655,6 +665,7 @@ class AtvService {
    *
    * @return mixed
    *   Did upload succeed?
+   *
    * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
    * @throws \GuzzleHttp\Exception\GuzzleException
@@ -716,7 +727,8 @@ class AtvService {
 
     $requestStartTime = 0;
     if ($this->isDebug()) {
-      $requestStartTime = floor(microtime(TRUE) * 1000);;
+      $requestStartTime = floor(microtime(TRUE) * 1000);
+      ;
     }
     $resp = $this->httpClient->request(
       $method,
@@ -725,7 +737,8 @@ class AtvService {
     );
 
     if ($this->isDebug()) {
-      $requestEndTime = floor(microtime(TRUE) * 1000);;
+      $requestEndTime = floor(microtime(TRUE) * 1000);
+      ;
       $this->logger->debug('ATV @method query @url took @ms ms', [
         '@method' => $method,
         '@url' => $url,
@@ -750,7 +763,8 @@ class AtvService {
           'private://grants_profile/' . $filename,
           FileSystemInterface::EXISTS_REPLACE
         );
-      } catch (EntityStorageException $e) {
+      }
+      catch (EntityStorageException $e) {
         // If fails, log error & return false.
         $this->logger->error('File download/filesystem write failed: ' . $e->getMessage());
       }
@@ -807,10 +821,9 @@ class AtvService {
   private function doRequest(
     string $method,
     string $url,
-    array  $options
+    array $options
   ): array|AtvDocument|bool|FileInterface {
     try {
-
 
       $responseContent = $this->request(
         $method,
@@ -878,7 +891,8 @@ class AtvService {
         return $bodyContents;
       }
       return FALSE;
-    } catch (ServerException|GuzzleException $e) {
+    }
+    catch (ServerException | GuzzleException $e) {
 
       $msg = $e->getMessage();
       $this->logger->error($msg);
@@ -908,7 +922,8 @@ class AtvService {
 
     try {
       return $this->tempStore->delete($key);
-    } catch (\Exception $e) {
+    }
+    catch (\Exception $e) {
       return FALSE;
     }
   }
@@ -988,14 +1003,20 @@ class AtvService {
   }
 
   /**
+   * Is debug enebled.
+   *
    * @return bool
+   *   Debug true/false
    */
   public function isDebug(): bool {
     return $this->debug;
   }
 
   /**
+   * Set debug value.
+   *
    * @param bool $debug
+   *   Debug true/false.
    */
   public function setDebug(bool $debug): void {
     $this->debug = $debug;
