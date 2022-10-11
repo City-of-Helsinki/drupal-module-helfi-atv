@@ -217,11 +217,16 @@ class AtvService {
       ];
     }
     // Neither -> error.
-    else {
+    elseif($this->helsinkiProfiiliUserData->isAuthenticatedExternally()) {
       $this->headers = [];
       $this->logger->error('No access to ATV. No token or no admin');
       throw new AtvAuthFailedException('No access to ATV');
     }
+    else {
+      $this->headers = [];
+      $this->logger->error('User is trying to access ATV but has not been externally authenticated.');
+    }
+
 
     $this->fileRepository = $fileRepository;
     $this->tempStore = $tempstore->get('atv_service');
@@ -250,6 +255,39 @@ class AtvService {
   }
 
   /**
+   * Recursively implodes an array with optional key inclusion.
+   *
+   * @param string $glue
+   *   Value that glues elements together.
+   * @param array $array
+   *   Multi-dimensional array to recursively implode.
+   * @param bool $include_keys
+   *   Include keys before their values.
+   * @param bool $trim_all
+   *   Trim ALL whitespace from string.
+   *
+   * @return string
+   *   Imploded array
+   */
+  private static function recursiveImplode(string $glue, array $array, $include_keys = FALSE, $trim_all = TRUE) {
+    $glued_string = '';
+
+    // Recursively iterates array and adds key/value to glued string.
+    array_walk_recursive($array, function ($value, $key) use ($glue, $include_keys, &$glued_string) {
+      $include_keys and $glued_string .= $key . $glue;
+      $glued_string .= $value . $glue;
+    });
+
+    // Removes last $glue from string.
+    strlen($glue) > 0 and $glued_string = substr($glued_string, 0, -strlen($glue));
+
+    // Trim ALL whitespace.
+    $trim_all and $glued_string = preg_replace("/(\s)/ixsm", '', $glued_string);
+
+    return (string) $glued_string;
+  }
+
+  /**
    * Search documents with given arguments.
    *
    * @param array $searchParams
@@ -273,7 +311,9 @@ class AtvService {
       ;
     }
 
-    $cacheKey = implode('-', $searchParams);
+    // Recursevily implode & md5 string to be used as standard length
+    // key for cache.
+    $cacheKey = md5(self::recursiveImplode('-', $searchParams, TRUE, TRUE));
 
     if ($this->useCache && $refetch !== TRUE) {
       if ($this->isCached($cacheKey)) {
@@ -371,6 +411,30 @@ class AtvService {
 
     if (!empty($params)) {
       $paramCounter = 1;
+
+      // If we have lookfor as an array, we need to parse parameters from
+      // array to lookfor element.
+      if (isset($params['lookfor']) && is_array($params['lookfor'])) {
+        if ($paramCounter == 1) {
+          $newUrl .= '?lookfor=';
+        }
+        else {
+          $newUrl .= '&lookfor=';
+        }
+        // Since lookfor is single parameter, just add 1.
+        $paramCounter++;
+        // Parse lookfor parameter from array and separate key:value
+        // pairs with comma.
+        foreach ($params['lookfor'] as $key => $value) {
+          $newUrl .= $key . ':' . $value . ',';
+        }
+        // Remove last comma from url.
+        $newUrl = substr_replace($newUrl, "", -1);
+        // And unset processed lookfor
+        // if this is not an array, it just gets parsed with other attributes.
+        unset($params['lookfor']);
+      }
+
       foreach ($params as $key => $value) {
         if ($paramCounter == 1) {
           $newUrl .= '?';
