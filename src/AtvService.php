@@ -5,8 +5,6 @@ namespace Drupal\helfi_atv;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Logger\LoggerChannelFactory;
-use Drupal\Core\TempStore\PrivateTempStore;
-use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
 use Drupal\file\FileRepository;
@@ -56,13 +54,6 @@ class AtvService {
    * @var \Drupal\file\FileRepository
    */
   protected FileRepository $fileRepository;
-
-  /**
-   * Access to session storage.
-   *
-   * @var \Drupal\Core\TempStore\PrivateTempStore
-   */
-  protected PrivateTempStore $tempStore;
 
   /**
    * Do we use caching or not?
@@ -121,6 +112,13 @@ class AtvService {
   protected string $atvTokenName;
 
   /**
+   * Request cache.
+   *
+   * @var array
+   */
+  protected array $requestCache;
+
+  /**
    * Constructs an AtvService object.
    *
    * @param \GuzzleHttp\ClientInterface $http_client
@@ -129,8 +127,6 @@ class AtvService {
    *   Logger factory.
    * @param \Drupal\file\FileRepository $fileRepository
    *   Access to filesystem.
-   * @param \Drupal\Core\TempStore\PrivateTempStoreFactory $tempstore
-   *   Tempstore to save responses.
    * @param \Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData $helsinkiProfiiliUserData
    *   Helsinkiprofiili.
    *
@@ -140,7 +136,6 @@ class AtvService {
     ClientInterface $http_client,
     LoggerChannelFactory $loggerFactory,
     FileRepository $fileRepository,
-    PrivateTempStoreFactory $tempstore,
     HelsinkiProfiiliUserData $helsinkiProfiiliUserData
   ) {
     $this->httpClient = $http_client;
@@ -163,7 +158,6 @@ class AtvService {
     $userRoles = $this->helsinkiProfiiliUserData->getCurrentUser()->getRoles();
     $adminRoles = explode(',', getenv('ADMIN_USER_ROLES'));
     $hpRoles = explode(',', getenv('HP_USER_ROLES'));
-
 
     if (in_array('admin', $userRoles)) {
       return;
@@ -188,8 +182,10 @@ class AtvService {
       FALSE,
     );
 
-    // If user does not have admin role but has user role, use token based auth.
-    // Token based auth must be explicitly set to true to enable token based auth.
+    // If user does not have admin role but has user role,
+    // use token based auth.
+    // Token based auth must be explicitly set to true to
+    // enable token based auth.
     if ($hasAdminRole != TRUE && $hasHpRole == TRUE && $useTokenAuth == 'true') {
 
       $tokenName = getenv('ATV_TOKEN_NAME');
@@ -225,9 +221,7 @@ class AtvService {
       $this->logger->error('User is trying to access ATV but has not been externally authenticated.');
     }
 
-
     $this->fileRepository = $fileRepository;
-    $this->tempStore = $tempstore->get('atv_service');
 
     if ($queryCacheTime) {
       $this->queryCacheTime = intval($queryCacheTime);
@@ -237,6 +231,7 @@ class AtvService {
     }
 
     $this->debug = getenv('DEBUG');
+    $this->requestCache = [];
   }
 
   /**
@@ -296,7 +291,6 @@ class AtvService {
    * @return array
    *   Data
    *
-   * @throws \Drupal\Core\TempStore\TempStoreException
    * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
    * @throws \GuzzleHttp\Exception\GuzzleException
@@ -306,14 +300,15 @@ class AtvService {
     $requestStartTime = 0;
     if ($this->isDebug()) {
       $requestStartTime = floor(microtime(TRUE) * 1000);
-      ;
     }
 
-    // Recursevily implode & md5 string to be used as standard length
+    $cache = $searchParams;
+    unset($cache['lookfor']);
+    // Recursevily implode & sha1 string to be used as standard length
     // key for cache.
-    $cacheKey = md5(self::recursiveImplode('-', $searchParams, TRUE, TRUE));
+    $cacheKey = sha1(self::recursiveImplode('-', $cache, TRUE, TRUE));
 
-    if ($this->useCache && $refetch !== TRUE) {
+    if ($this->useCache) {
       if ($this->isCached($cacheKey)) {
         return $this->getFromCache($cacheKey);
       }
@@ -329,16 +324,23 @@ class AtvService {
 
     // If no data for some reason, don't fail, return empty array instead.
     if (!is_array($responseData) || empty($responseData['results'])) {
-      throw new AtvDocumentNotFoundException('No documents found in ATV');
+      return [];
     }
 
     if ($this->useCache) {
+      /** @var \Drupal\helfi_atv\AtvDocument $document */
+      foreach ($responseData['results'] as $document) {
+        $cacheParams = [
+          'transaction_id' => $document->getTransactionId(),
+        ];
+        $cacheKey2 = sha1(self::recursiveImplode('-', $cacheParams, TRUE, TRUE));
+        $this->setToCache($cacheKey2, [$document]);
+      }
       $this->setToCache($cacheKey, $responseData['results']);
     }
 
     if ($this->isDebug()) {
       $requestEndTime = floor(microtime(TRUE) * 1000);
-      ;
       $this->logger->debug('Search documents with @key took @ms ms', [
         '@key' => $cacheKey,
         '@ms' => $requestEndTime - $requestStartTime,
@@ -467,7 +469,6 @@ class AtvService {
    * @throws \Drupal\Core\TempStore\TempStoreException
    */
   public function getDocument(string $id, bool $refetch = FALSE): AtvDocument {
-
     if ($this->useCache && $refetch === FALSE) {
       if ($this->isCached($id)) {
         return $this->getFromCache($id);
@@ -603,7 +604,7 @@ class AtvService {
     $updatedDocument = reset($results['results']);
 
     if ($this->useCache && $updatedDocument) {
-      $this->setToCache($dataArray["transaction_id"], [$updatedDocument]);
+      $this->setToCache(sha1($dataArray["transaction_id"]), [$updatedDocument]);
     }
 
     return $updatedDocument;
@@ -976,18 +977,9 @@ class AtvService {
    *
    * @param string $key
    *   Used key for caching.
-   *
-   * @return bool
-   *   Is this cached?
    */
-  public function clearCache(string $key): bool {
-
-    try {
-      return $this->tempStore->delete($key);
-    }
-    catch (\Exception $e) {
-      return FALSE;
-    }
+  public function clearCache(string $key = ''): void {
+    $this->requestCache = [];
   }
 
   /**
@@ -1000,19 +992,7 @@ class AtvService {
    *   Is this cached?
    */
   public function isCached(string $key): bool {
-    $tempStoreData = $this->tempStore->get('atv_service');
-
-    $now = time();
-
-    if (isset($tempStoreData[$key]) && !empty($tempStoreData[$key])) {
-      $dataArray = $tempStoreData[$key];
-      $timeDiff = $now - $dataArray['timestamp'];
-      if ($timeDiff < $this->queryCacheTime) {
-        return TRUE;
-      }
-    }
-
-    return FALSE;
+    return isset($this->requestCache[$key]);
   }
 
   /**
@@ -1021,20 +1001,11 @@ class AtvService {
    * @param string $key
    *   Key to fetch from tempstore.
    *
-   * @return mixed
+   * @return array|null
    *   Data in cache or null
    */
-  protected function getFromCache(string $key): mixed {
-    $tempStoreData = $this->tempStore->get('atv_service');
-
-    if (isset($tempStoreData[$key]) && !empty($tempStoreData[$key])) {
-      if ($this->isDebug()) {
-        $this->logger->debug('Request cache found @key', ['@key' => $key]);
-      }
-      return $tempStoreData[$key]['data'];
-    }
-
-    return NULL;
+  protected function getFromCache(string $key): ?array {
+    return $this->requestCache[$key] ?? NULL;
   }
 
   /**
@@ -1044,24 +1015,9 @@ class AtvService {
    *   Used key for caching.
    * @param mixed $data
    *   Cached data.
-   *
-   * @throws \Drupal\Core\TempStore\TempStoreException
    */
   protected function setToCache(string $key, mixed $data) {
-    $tempStoreData = $this->tempStore->get('atv_service');
-
-    $cacheTime = time();
-
-    $tempStoreData[$key] = [
-      'data' => $data,
-      'timestamp' => $cacheTime,
-    ];
-
-    if ($this->isDebug()) {
-      $this->logger->debug('Request updated @key', ['@key' => $key]);
-    }
-
-    $this->tempStore->set('atv_service', $tempStoreData);
+    $this->requestCache[$key] = $data;
   }
 
   /**

@@ -5,6 +5,5 @@ services:
       '@http_client',
       '@logger.factory',
       '@file.repository',
-      '@tempstore.private',
       '@helfi_helsinki_profiili.userdata'
     ]
