@@ -9,5 +9,7 @@
             "Drupal\\HelfiAtv\\": "src/"
         }
     },
-    "require": {}
+    "require": {
+        "drupal/helfi_helsinki_profiili": "dev-develop"
+    }
 }
