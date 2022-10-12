@@ -154,14 +154,7 @@ class AtvService {
     $this->atvServiceName = getenv('ATV_SERVICE');
 
     $queryCacheTime = getenv('APP_QUERY_CACHE_TIME');
-
-    $tokenName = getenv('ATV_TOKEN_NAME');
-    if (!empty($tokenName)) {
-      $this->atvTokenName = $tokenName;
-    }
-    else {
-      throw new AtvAuthFailedException('No auth token name set.');
-    }
+    $useTokenAuth = getenv('ATV_USE_TOKEN_AUTH');
 
     $this->helsinkiProfiiliUserData = $helsinkiProfiiliUserData;
 
@@ -170,6 +163,7 @@ class AtvService {
     $userRoles = $this->helsinkiProfiiliUserData->getCurrentUser()->getRoles();
     $adminRoles = explode(',', getenv('ADMIN_USER_ROLES'));
     $hpRoles = explode(',', getenv('HP_USER_ROLES'));
+
 
     if (in_array('admin', $userRoles)) {
       return;
@@ -195,32 +189,36 @@ class AtvService {
     );
 
     // If user does not have admin role but has user role, use token based auth.
-    if ($hasAdminRole != TRUE && $hasHpRole == TRUE) {
+    // Token based auth must be explicitly set to true to enable token based auth.
+    if ($hasAdminRole != TRUE && $hasHpRole == TRUE && $useTokenAuth == 'true') {
+
+      $tokenName = getenv('ATV_TOKEN_NAME');
+      if (!empty($tokenName)) {
+        $this->atvTokenName = $tokenName;
+      }
+      else {
+        throw new AtvAuthFailedException('No auth token name set.');
+      }
 
       $tokens = $this->helsinkiProfiiliUserData->getApiAccessTokens();
-      if (is_array($tokens) && isset($tokens['https://api.hel.fi/auth/atvapidev'])) {
+      if (is_array($tokens) && isset($tokens[$this->atvTokenName])) {
 
         $this->logger->debug('ATV Token auth, got tokens: @tokens', ['@tokens' => implode(',', array_keys($tokens))]);
 
         $this->headers = [
-          'Authorization' => 'Bearer ' . $tokens['https://api.hel.fi/auth/atvapidev'],
+          'Authorization' => 'Bearer ' . $tokens[$this->atvTokenName],
         ];
       }
     }
     // If user has admin role, then use apikey.
-    elseif ($hasAdminRole == TRUE) {
+    // Or if the token usage has been disabled.
+    elseif ($hasAdminRole == TRUE || $useTokenAuth == 'false') {
 
       $this->logger->debug('ATV APIKEY auth, admin roles: @tokens', ['@tokens' => implode(',', array_keys($adminRoles))]);
 
       $this->headers = [
         'X-Api-Key' => getenv('ATV_API_KEY'),
       ];
-    }
-    // Neither -> error.
-    elseif($this->helsinkiProfiiliUserData->isAuthenticatedExternally()) {
-      $this->headers = [];
-      // @todo: for some reason this gives unexpected failures. Not really sure what's going on.
-//      throw new AtvAuthFailedException('No access to ATV');
     }
     else {
       $this->headers = [];
