@@ -199,7 +199,9 @@ class AtvService {
       $tokens = $this->helsinkiProfiiliUserData->getApiAccessTokens();
       if (is_array($tokens) && isset($tokens[$this->atvTokenName])) {
 
-        $this->logger->debug('ATV Token auth, got tokens: @tokens', ['@tokens' => implode(',', array_keys($tokens))]);
+        if ($this->isDebug()) {
+          $this->logger->debug('ATV Token auth, got tokens: @tokens', ['@tokens' => implode(',', array_keys($tokens))]);
+        }
 
         $this->headers = [
           'Authorization' => 'Bearer ' . $tokens[$this->atvTokenName],
@@ -209,9 +211,6 @@ class AtvService {
     // If user has admin role, then use apikey.
     // Or if the token usage has been disabled.
     elseif ($hasAdminRole == TRUE || $useTokenAuth == 'false') {
-
-      $this->logger->debug('ATV APIKEY auth, admin roles: @tokens', ['@tokens' => implode(',', array_keys($adminRoles))]);
-
       $this->headers = [
         'X-Api-Key' => getenv('ATV_API_KEY'),
       ];
