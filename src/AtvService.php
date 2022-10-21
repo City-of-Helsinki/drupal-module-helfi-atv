@@ -156,8 +156,12 @@ class AtvService {
     // Here we figure out if user has HP user or ADMIN, and if user has admin
     // role but no user role then we use apikey for authenticating user.
     $userRoles = $this->helsinkiProfiiliUserData->getCurrentUser()->getRoles();
-    $adminRoles = explode(',', getenv('ADMIN_USER_ROLES'));
-    $hpRoles = explode(',', getenv('HP_USER_ROLES'));
+
+    $config = \Drupal::config('helfi_atv.settings');
+    $rolesConfig = $config->get('roles');
+
+    $adminRoles = $rolesConfig['admin_user_roles'] ?? [];
+    $hpRoles = $rolesConfig['hp_user_roles'] ?? [];
 
     if (in_array('admin', $userRoles)) {
       return;
