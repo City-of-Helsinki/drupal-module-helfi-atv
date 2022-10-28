@@ -9,6 +9,7 @@ use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
 use Drupal\file\FileRepository;
 use Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData;
+use Drupal\helfi_helsinki_profiili\TokenExpiredException;
 use GuzzleHttp\ClientInterface;
 use Drupal\Component\Serialization\Json;
 use GuzzleHttp\Exception\GuzzleException;
@@ -149,9 +150,32 @@ class AtvService {
     $this->atvServiceName = getenv('ATV_SERVICE');
 
     $queryCacheTime = getenv('APP_QUERY_CACHE_TIME');
-    $useTokenAuth = getenv('ATV_USE_TOKEN_AUTH');
 
     $this->helsinkiProfiiliUserData = $helsinkiProfiiliUserData;
+
+    $this->fileRepository = $fileRepository;
+
+    if ($queryCacheTime) {
+      $this->queryCacheTime = intval($queryCacheTime);
+    }
+    else {
+      $this->queryCacheTime = 0;
+    }
+
+    $this->debug = getenv('DEBUG');
+    $this->requestCache = [];
+    $this->headers = [];
+  }
+
+  /**
+   * Set authentication headers depending on user session.
+   *
+   * @throws \Drupal\helfi_atv\AtvAuthFailedException
+   * @throws \Drupal\helfi_helsinki_profiili\TokenExpiredException
+   */
+  private function setAuthHeaders(): void {
+
+    $useTokenAuth = getenv('ATV_USE_TOKEN_AUTH');
 
     // Here we figure out if user has HP user or ADMIN, and if user has admin
     // role but no user role then we use apikey for authenticating user.
@@ -223,18 +247,6 @@ class AtvService {
       $this->headers = [];
       $this->logger->error('User is trying to access ATV but has not been externally authenticated.');
     }
-
-    $this->fileRepository = $fileRepository;
-
-    if ($queryCacheTime) {
-      $this->queryCacheTime = intval($queryCacheTime);
-    }
-    else {
-      $this->queryCacheTime = 0;
-    }
-
-    $this->debug = getenv('DEBUG');
-    $this->requestCache = [];
   }
 
   /**
@@ -883,6 +895,7 @@ class AtvService {
    * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
    * @throws \GuzzleHttp\Exception\GuzzleException
+   * @throws \Drupal\helfi_helsinki_profiili\TokenExpiredException
    */
   private function doRequest(
     string $method,
@@ -890,6 +903,19 @@ class AtvService {
     array $options
   ): array|AtvDocument|bool|FileInterface {
     try {
+      // if we don't have Authorization headers, we need to get them
+      if (!$options['headers'] || !$options['headers']['Authorization']) {
+        // set headers from configs
+        $this->setAuthHeaders();
+        // if no headers at all, replace them with generated ones.
+        if (!$options['headers']) {
+          $options['headers'] = $this->headers;
+        }
+        // if we have others, but auth is missing. let's override them only.
+        else if (!$options['headers']['Authorization']) {
+          $options['headers']['Authorization'] = $this->headers['Authorization'];
+        }
+      }
 
       $responseContent = $this->request(
         $method,
@@ -972,7 +998,12 @@ class AtvService {
       else {
         throw $e;
       }
+    } catch (AtvAuthFailedException $e) {
+    } catch (TokenExpiredException $e) {
+      /** @var TokenExpiredException $e */
+      throw $e;
     }
+    return FALSE;
   }
 
   /**
