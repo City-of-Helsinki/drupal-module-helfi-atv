@@ -40,7 +40,7 @@ class AtvService {
    *
    * @var string
    */
-  private string $baseUrl;
+  protected string $baseUrl;
 
   /**
    * Logger.
@@ -904,16 +904,17 @@ class AtvService {
   ): array|AtvDocument|bool|FileInterface {
     try {
       // if we don't have Authorization headers, we need to get them
-      if (!$options['headers'] || !$options['headers']['Authorization']) {
+      if (empty($options['headers'])) {
         // set headers from configs
         $this->setAuthHeaders();
-        // if no headers at all, replace them with generated ones.
-        if (!$options['headers']) {
-          $options['headers'] = $this->headers;
-        }
+
         // if we have others, but auth is missing. let's override them only.
-        else if (!$options['headers']['Authorization']) {
+        if (!empty($this->headers['Authorization'])) {
           $options['headers']['Authorization'] = $this->headers['Authorization'];
+        }
+        // if we have X-APi-Key, then use it.
+        if (!empty($this->headers['X-Api-Key'])) {
+          $options['headers']['X-Api-Key'] = $this->headers['X-Api-Key'];
         }
       }
 
@@ -1072,6 +1073,13 @@ class AtvService {
    */
   public function setDebug(bool $debug): void {
     $this->debug = $debug;
+  }
+
+  /**
+   * @return string
+   */
+  public function getBaseUrl(): string {
+    return $this->baseUrl;
   }
 
 }
