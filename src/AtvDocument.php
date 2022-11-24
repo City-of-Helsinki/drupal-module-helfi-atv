@@ -152,6 +152,13 @@ final class AtvDocument implements \JsonSerializable {
   protected array $humanReadableType;
 
   /**
+   * Deletable flag for GDPR usage.
+   *
+   * @var bool
+   */
+  protected bool $deletable;
+
+  /**
    * Create ATVDocument object from given values.
    *
    * @param array $values
@@ -241,6 +248,9 @@ final class AtvDocument implements \JsonSerializable {
     }
     if (isset($values['attachments'])) {
       $object->attachments = $values['attachments'];
+    }
+    if (isset($values['deletable'])) {
+      $object->deletable = $values['deletable'];
     }
 
     return $object;
@@ -341,6 +351,9 @@ final class AtvDocument implements \JsonSerializable {
     }
     if (isset($this->draft)) {
       $json_array['draft'] = $this->getDraft();
+    }
+    if (isset($this->deletable)) {
+      $json_array['deletable'] = $this->isDeletable();
     }
 
     return $json_array;
@@ -706,6 +719,25 @@ final class AtvDocument implements \JsonSerializable {
    */
   public function setDraft(bool $draft): void {
     $this->draft = $draft;
+  }
+
+  /**
+   * GDPR deletable flag.
+   *
+   * @return bool
+   *  Is document deletable.
+   */
+  public function isDeletable(): bool {
+    return $this->deletable;
+  }
+
+  /**
+   * Set deletable flag.
+   *
+   * @param bool $deletable
+   */
+  public function setDeletable(bool $deletable): void {
+    $this->deletable = $deletable;
   }
 
 }

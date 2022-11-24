@@ -903,16 +903,16 @@ class AtvService {
     array $options
   ): array|AtvDocument|bool|FileInterface {
     try {
-      // if we don't have Authorization headers, we need to get them
+      // If we don't have Authorization headers, we need to get them.
       if (empty($options['headers'])) {
-        // set headers from configs
+        // Set headers from configs.
         $this->setAuthHeaders();
 
-        // if we have others, but auth is missing. let's override them only.
+        // If we have others, but auth is missing. let's override them only.
         if (!empty($this->headers['Authorization'])) {
           $options['headers']['Authorization'] = $this->headers['Authorization'];
         }
-        // if we have X-APi-Key, then use it.
+        // If we have X-APi-Key, then use it.
         if (!empty($this->headers['X-Api-Key'])) {
           $options['headers']['X-Api-Key'] = $this->headers['X-Api-Key'];
         }
@@ -999,9 +999,11 @@ class AtvService {
       else {
         throw $e;
       }
-    } catch (AtvAuthFailedException $e) {
-    } catch (TokenExpiredException $e) {
-      /** @var TokenExpiredException $e */
+    }
+    catch (AtvAuthFailedException $e) {
+    }
+    catch (TokenExpiredException $e) {
+      /** @var \Drupal\helfi_helsinki_profiili\TokenExpiredException $e */
       throw $e;
     }
     return FALSE;
@@ -1076,7 +1078,10 @@ class AtvService {
   }
 
   /**
+   * Get baseurl for ATV.
+   *
    * @return string
+   *  ATV base url.
    */
   public function getBaseUrl(): string {
     return $this->baseUrl;
