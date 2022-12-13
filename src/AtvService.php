@@ -391,7 +391,7 @@ class AtvService {
 
     $responseData = $this->doRequest(
       'GET',
-      $this->buildUrl('userdocuments/' . $sub, $params),
+      $this->buildUrl('userdocuments/' . $sub . '/', $params),
       [
         'headers' => [
           'X-Api-Key' => getenv('ATV_API_KEY'),
@@ -870,6 +870,10 @@ class AtvService {
         $bodyContents['results'] = array_merge($bodyContents['results'] ?? [], $prevRes);
         // Merge new results with old ones.
         if (isset($bodyContents['next']) && !empty($bodyContents['next'])) {
+          // Replace hostname if we are running in local environment.
+          if (str_contains(strtolower($this->appEnvironment), "local")) {
+            $bodyContents['next'] = str_replace(".apps.", ".agw.", $bodyContents['next']);
+          }
           // Call self for next results.
           $bodyContents = $this->request($method, $bodyContents['next'], $options, $bodyContents['results']);
         }
@@ -1081,7 +1085,7 @@ class AtvService {
    * Get baseurl for ATV.
    *
    * @return string
-   *  ATV base url.
+   *   ATV base url.
    */
   public function getBaseUrl(): string {
     return $this->baseUrl;

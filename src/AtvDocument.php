@@ -725,7 +725,7 @@ final class AtvDocument implements \JsonSerializable {
    * GDPR deletable flag.
    *
    * @return bool
-   *  Is document deletable.
+   *   Is document deletable.
    */
   public function isDeletable(): bool {
     return $this->deletable;
@@ -735,6 +735,7 @@ final class AtvDocument implements \JsonSerializable {
    * Set deletable flag.
    *
    * @param bool $deletable
+   *   Is parameter deletable.
    */
   public function setDeletable(bool $deletable): void {
     $this->deletable = $deletable;
