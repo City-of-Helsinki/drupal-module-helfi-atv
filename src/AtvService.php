@@ -170,10 +170,20 @@ class AtvService {
   /**
    * Set authentication headers depending on user session.
    *
+   * @param bool $useApiKey
+   *   Force use of api key authentication.
+   *
    * @throws \Drupal\helfi_atv\AtvAuthFailedException
    * @throws \Drupal\helfi_helsinki_profiili\TokenExpiredException
    */
-  private function setAuthHeaders(): void {
+  private function setAuthHeaders($useApiKey = FALSE): void {
+
+    if ($useApiKey) {
+      $this->headers = [
+        'X-Api-Key' => getenv('ATV_API_KEY'),
+      ];
+      return;
+    }
 
     $useTokenAuth = getenv('ATV_USE_TOKEN_AUTH');
 
@@ -391,7 +401,7 @@ class AtvService {
 
     $responseData = $this->doRequest(
       'GET',
-      $this->buildUrl('userdocuments/' . $sub, $params),
+      $this->buildUrl('userdocuments/' . $sub . '/', $params),
       [
         'headers' => [
           'X-Api-Key' => getenv('ATV_API_KEY'),
@@ -870,6 +880,10 @@ class AtvService {
         $bodyContents['results'] = array_merge($bodyContents['results'] ?? [], $prevRes);
         // Merge new results with old ones.
         if (isset($bodyContents['next']) && !empty($bodyContents['next'])) {
+          // Replace hostname if we are running in local environment.
+          if (str_contains(strtolower($this->appEnvironment), "local")) {
+            $bodyContents['next'] = str_replace(".apps.", ".agw.", $bodyContents['next']);
+          }
           // Call self for next results.
           $bodyContents = $this->request($method, $bodyContents['next'], $options, $bodyContents['results']);
         }
@@ -888,23 +902,31 @@ class AtvService {
    *   Endpoint.
    * @param array $options
    *   Options for request.
+   * @param bool $apiKeyAuth
+   *   Use apikey.
    *
    * @return array|bool|FileInterface|AtvDocument
    *   Content or boolean if void.
    *
    * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
-   * @throws \GuzzleHttp\Exception\GuzzleException
    * @throws \Drupal\helfi_helsinki_profiili\TokenExpiredException
+   * @throws \GuzzleHttp\Exception\GuzzleException
    */
   private function doRequest(
     string $method,
     string $url,
-    array $options
+    array $options,
+    bool $apiKeyAuth = FALSE
   ): array|AtvDocument|bool|FileInterface {
     try {
+
+      if ($apiKeyAuth) {
+        // Set headers from configs.
+        $this->setAuthHeaders(TRUE);
+      }
       // If we don't have Authorization headers, we need to get them.
-      if (empty($options['headers'])) {
+      elseif (empty($options['headers'])) {
         // Set headers from configs.
         $this->setAuthHeaders();
 
@@ -936,6 +958,10 @@ class AtvService {
       // @todo Check if there's any point doing these if's here?!?!
       if ($response->getStatusCode() == 200) {
 
+        // If we have response content as attachment, let's just return that.
+        if (isset($responseContent['data'])) {
+          return $responseContent['data'];
+        }
         // If we have response content as attachment, let's just return that.
         if (isset($responseContent['file'])) {
           return $responseContent['file'];
@@ -1081,10 +1107,63 @@ class AtvService {
    * Get baseurl for ATV.
    *
    * @return string
-   *  ATV base url.
+   *   ATV base url.
    */
   public function getBaseUrl(): string {
     return $this->baseUrl;
+  }
+
+  /**
+   * Get users' GDPR data from ATV.
+   *
+   * @param string $userId
+   *   Whose data we're looking.
+   *
+   * @return array|bool|\Drupal\file\FileInterface|\Drupal\helfi_atv\AtvDocument
+   *   User's data or empty values.
+   *
+   * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
+   * @throws \Drupal\helfi_atv\AtvFailedToConnectException
+   * @throws \Drupal\helfi_helsinki_profiili\TokenExpiredException
+   * @throws \GuzzleHttp\Exception\GuzzleException
+   * @throws \Drupal\helfi_atv\AtvAuthFailedException
+   */
+  public function getGdprData($userId): AtvDocument|bool|array|FileInterface {
+    $this->setAuthHeaders(TRUE);
+
+    return $this->doRequest(
+      'GET',
+      $this->buildUrl('gdpr-api/' . $userId,),
+      [
+        'headers' => $this->headers,
+      ]
+    );
+  }
+
+  /**
+   * Get users' GDPR data from ATV.
+   *
+   * @param string $userId
+   *   Whose data we're looking.
+   *
+   * @return array|bool|\Drupal\file\FileInterface|\Drupal\helfi_atv\AtvDocument
+   *   User's data or empty values.
+   *
+   * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
+   * @throws \Drupal\helfi_atv\AtvFailedToConnectException
+   * @throws \Drupal\helfi_helsinki_profiili\TokenExpiredException
+   * @throws \GuzzleHttp\Exception\GuzzleException
+   * @throws \Drupal\helfi_atv\AtvAuthFailedException
+   */
+  public function deleteGdprData($userId): AtvDocument|bool|array|FileInterface {
+    // $this->setAuthHeaders(TRUE);
+    return $this->doRequest(
+      'DELETE',
+      $this->buildUrl('gdpr-api/' . $userId,),
+      [
+        'headers' => $this->headers,
+      ]
+    );
   }
 
 }
