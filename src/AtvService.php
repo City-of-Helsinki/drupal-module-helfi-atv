@@ -258,6 +258,10 @@ class AtvService {
           'Authorization' => 'Bearer ' . $tokens[$this->atvTokenName],
         ];
       }
+      else {
+        $this->debugPrint('ATV Token auth, tokens FAIL: @tokens', ['@tokens' => Json::encode($tokens)]);
+      }
+
     }
     // If user has admin role, then use apikey.
     // Or if the token usage has been disabled.
