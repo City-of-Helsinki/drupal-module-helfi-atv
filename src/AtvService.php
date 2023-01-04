@@ -162,7 +162,15 @@ class AtvService {
       $this->queryCacheTime = 0;
     }
 
-    $this->debug = getenv('DEBUG');
+    $debug = getenv('DEBUG');
+
+    if ($debug == 'true' || $debug === TRUE) {
+      $this->debug = TRUE;
+    }
+    else {
+      $this->debug = FALSE;
+    }
+
     $this->requestCache = [];
     $this->headers = [];
   }
@@ -186,6 +194,8 @@ class AtvService {
     }
 
     $useTokenAuth = getenv('ATV_USE_TOKEN_AUTH');
+
+    $this->debugPrint('User tokenAUTH: @tokeauth', ['@tokeauth' => $useTokenAuth]);
 
     // Here we figure out if user has HP user or ADMIN, and if user has admin
     // role but no user role then we use apikey for authenticating user.
@@ -220,11 +230,15 @@ class AtvService {
       FALSE,
     );
 
+    $this->debugPrint('User roles: @roles', ['@roles' => implode(',', $userRoles)]);
+
     // If user does not have admin role but has user role,
     // use token based auth.
     // Token based auth must be explicitly set to true to
     // enable token based auth.
     if ($hasAdminRole != TRUE && $hasHpRole == TRUE && $useTokenAuth == 'true') {
+
+      $this->debugPrint('Token auth & no admin role but HAS HP role');
 
       $tokenName = getenv('ATV_TOKEN_NAME');
       if (!empty($tokenName)) {
@@ -237,9 +251,7 @@ class AtvService {
       $tokens = $this->helsinkiProfiiliUserData->getApiAccessTokens();
       if (is_array($tokens) && isset($tokens[$this->atvTokenName])) {
 
-        if ($this->isDebug()) {
-          $this->logger->debug('ATV Token auth, got tokens: @tokens', ['@tokens' => implode(',', array_keys($tokens))]);
-        }
+        $this->debugPrint('ATV Token auth, got tokens: @tokens', ['@tokens' => implode(',', array_keys($tokens))]);
 
         $this->headers = [
           'Authorization' => 'Bearer ' . $tokens[$this->atvTokenName],
@@ -249,6 +261,7 @@ class AtvService {
     // If user has admin role, then use apikey.
     // Or if the token usage has been disabled.
     elseif ($hasAdminRole == TRUE || $useTokenAuth == 'false') {
+      $this->debugPrint('Has admin role + tries API key');
       $this->headers = [
         'X-Api-Key' => getenv('ATV_API_KEY'),
       ];
@@ -258,6 +271,7 @@ class AtvService {
       $this->logger->error('User is trying to access ATV but has not been externally authenticated.');
     }
   }
+
 
   /**
    * Create new ATVDocument.
@@ -1164,6 +1178,17 @@ class AtvService {
         'headers' => $this->headers,
       ]
     );
+  }
+
+  /**
+   * @param array $tokens
+   *
+   * @return void
+   */
+  public function debugPrint(string $message, array $replacements = []): void {
+    if ($this->isDebug()) {
+      $this->logger->debug($message, $replacements);
+    }
   }
 
 }
