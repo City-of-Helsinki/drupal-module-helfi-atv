@@ -187,6 +187,7 @@ class AtvService {
   private function setAuthHeaders($useApiKey = FALSE): void {
 
     if ($useApiKey) {
+      $this->debugPrint('setAuthHeaders useApiKey: @tokeauth', ['@tokeauth' => $useApiKey]);
       $this->headers = [
         'X-Api-Key' => getenv('ATV_API_KEY'),
       ];
@@ -195,7 +196,7 @@ class AtvService {
 
     $useTokenAuth = getenv('ATV_USE_TOKEN_AUTH');
 
-    $this->debugPrint('User tokenAUTH: @tokeauth', ['@tokeauth' => $useTokenAuth]);
+    $this->debugPrint('setAuthHeaders-> User tokenAUTH: @tokeauth', ['@tokeauth' => $useTokenAuth]);
 
     // Here we figure out if user has HP user or ADMIN, and if user has admin
     // role but no user role then we use apikey for authenticating user.
@@ -230,7 +231,7 @@ class AtvService {
       FALSE,
     );
 
-    $this->debugPrint('User roles: @roles', ['@roles' => implode(',', $userRoles)]);
+    $this->debugPrint('setAuthHeaders-> User roles: @roles', ['@roles' => Json::encode($userRoles)]);
 
     // If user does not have admin role but has user role,
     // use token based auth.
@@ -238,7 +239,7 @@ class AtvService {
     // enable token based auth.
     if ($hasAdminRole != TRUE && $hasHpRole == TRUE && $useTokenAuth == 'true') {
 
-      $this->debugPrint('Token auth & no admin role but HAS HP role');
+      $this->debugPrint('setAuthHeaders-> Token auth & no admin role but HAS HP role');
 
       $tokenName = getenv('ATV_TOKEN_NAME');
       if (!empty($tokenName)) {
@@ -251,7 +252,7 @@ class AtvService {
       $tokens = $this->helsinkiProfiiliUserData->getApiAccessTokens();
       if (is_array($tokens) && isset($tokens[$this->atvTokenName])) {
 
-        $this->debugPrint('ATV Token auth, got tokens: @tokens', ['@tokens' => implode(',', array_keys($tokens))]);
+        $this->debugPrint('ATV Token auth, got tokens: @tokens', ['@tokens' => Json::encode(array_keys($tokens))]);
 
         $this->headers = [
           'Authorization' => 'Bearer ' . $tokens[$this->atvTokenName],
@@ -271,7 +272,6 @@ class AtvService {
       $this->logger->error('User is trying to access ATV but has not been externally authenticated.');
     }
   }
-
 
   /**
    * Create new ATVDocument.
@@ -827,6 +827,8 @@ class AtvService {
    */
   protected function request(string $method, string $url, array $options, array $prevRes = []): array {
 
+    $this->debugPrint('request-> called');
+
     $requestStartTime = 0;
     if ($this->isDebug()) {
       $requestStartTime = floor(microtime(TRUE) * 1000);
@@ -935,21 +937,30 @@ class AtvService {
   ): array|AtvDocument|bool|FileInterface {
     try {
 
+      $this->debugPrint('doRequest->');
+
       if ($apiKeyAuth) {
+        $this->debugPrint('doRequest-> use api key');
         // Set headers from configs.
         $this->setAuthHeaders(TRUE);
+
       }
       // If we don't have Authorization headers, we need to get them.
       elseif (empty($options['headers'])) {
+        $this->debugPrint('doRequest-> Headers empty, try set them');
         // Set headers from configs.
         $this->setAuthHeaders();
 
+        $this->debugPrint('doRequest-> Headers empty, after setAuthHeaders call. @headers', ['@headers' => Json::encode($this->headers)]);
+
         // If we have others, but auth is missing. let's override them only.
         if (!empty($this->headers['Authorization'])) {
+          $this->debugPrint('doRequest-> Authorization headers set');
           $options['headers']['Authorization'] = $this->headers['Authorization'];
         }
         // If we have X-APi-Key, then use it.
         if (!empty($this->headers['X-Api-Key'])) {
+          $this->debugPrint('doRequest-> X-Api-Key headers set');
           $options['headers']['X-Api-Key'] = $this->headers['X-Api-Key'];
         }
       }
@@ -1181,9 +1192,12 @@ class AtvService {
   }
 
   /**
-   * @param array $tokens
+   * Print debug messages.
    *
-   * @return void
+   * @param string $message
+   *   Message.
+   * @param array $replacements
+   *   Replacements.
    */
   public function debugPrint(string $message, array $replacements = []): void {
     if ($this->isDebug()) {
