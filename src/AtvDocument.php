@@ -609,10 +609,10 @@ final class AtvDocument implements \JsonSerializable {
    * @param string $filename
    *   Filename for attachment.
    *
-   * @return array
+   * @return array|bool
    *   Attachment details for given filename
    */
-  public function getAttachmentForFilename(string $filename): array {
+  public function getAttachmentForFilename(string $filename): array|bool {
     foreach ($this->getAttachments() as $attachment) {
       if ($attachment['filename'] == $filename) {
         return $attachment;
