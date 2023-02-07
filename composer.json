@@ -10,6 +10,6 @@
         }
     },
     "require": {
-        "drupal/helfi_helsinki_profiili": "dev-develop"
+        "drupal/helfi_helsinki_profiili": "^0.9"
     }
 }
