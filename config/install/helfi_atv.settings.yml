@@ -1,0 +1,4 @@
+roles:
+  hp_user_roles:
+    - 'helsinkiprofiili'
+  admin_user_roles: []

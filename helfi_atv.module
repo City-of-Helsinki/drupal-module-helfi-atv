@@ -8,3 +8,14 @@
  * This file is no longer required in Drupal 8.
  * @see https://www.drupal.org/node/2217931
  */
+
+use Drupal\Core\Session\AccountProxyInterface;
+
+/**
+ * Implements hook_user_logout().
+ */
+function helfi_atv_user_logout(AccountProxyInterface $account) {
+  /** @var Drupal\helfi_atv\AtvService */
+  $atvService = \Drupal::service('helfi_atv.atv_service');
+  $atvService->clearCache();
+}
