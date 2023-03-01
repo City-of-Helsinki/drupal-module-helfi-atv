@@ -71,13 +71,6 @@ class AtvService {
   protected string $appEnvironment;
 
   /**
-   * How many seconds is data cached.
-   *
-   * @var int
-   */
-  protected int $queryCacheTime;
-
-  /**
    * Atv version to use.
    *
    * @var string
@@ -120,6 +113,20 @@ class AtvService {
   protected array $requestCache;
 
   /**
+   * Maximum amount pages to fetch. This is not to overflow things.
+   *
+   * @var int
+   */
+  protected int $maxPages;
+
+  /**
+   * Current call count with multi-pages results.
+   *
+   * @var int
+   */
+  protected int $callCount;
+
+  /**
    * Constructs an AtvService object.
    *
    * @param \GuzzleHttp\ClientInterface $http_client
@@ -130,8 +137,6 @@ class AtvService {
    *   Access to filesystem.
    * @param \Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData $helsinkiProfiiliUserData
    *   Helsinkiprofiili.
-   *
-   * @throws \GuzzleHttp\Exception\GuzzleException
    */
   public function __construct(
     ClientInterface $http_client,
@@ -149,18 +154,9 @@ class AtvService {
     $this->appEnvironment = getenv('APP_ENV');
     $this->atvServiceName = getenv('ATV_SERVICE');
 
-    $queryCacheTime = getenv('APP_QUERY_CACHE_TIME');
-
     $this->helsinkiProfiiliUserData = $helsinkiProfiiliUserData;
 
     $this->fileRepository = $fileRepository;
-
-    if ($queryCacheTime) {
-      $this->queryCacheTime = intval($queryCacheTime);
-    }
-    else {
-      $this->queryCacheTime = 0;
-    }
 
     $debug = getenv('DEBUG');
 
@@ -173,6 +169,15 @@ class AtvService {
 
     $this->requestCache = [];
     $this->headers = [];
+
+    if (getenv('ATV_MAX_PAGES')) {
+      $this->maxPages = getenv('ATV_MAX_PAGES');
+    }
+    else {
+      $this->maxPages = 10;
+    }
+
+    $this->callCount = 0;
   }
 
   /**
@@ -701,6 +706,7 @@ class AtvService {
    * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
    * @throws \GuzzleHttp\Exception\GuzzleException
+   * @throws \Drupal\helfi_helsinki_profiili\TokenExpiredException
    */
   public function deleteDocument(AtvDocument $document) {
     $urlBits = 'documents/' . $document->getId();
@@ -915,8 +921,11 @@ class AtvService {
           if (str_contains(strtolower($this->appEnvironment), "local")) {
             $bodyContents['next'] = str_replace(".apps.", ".agw.", $bodyContents['next']);
           }
-          // Call self for next results.
-          $bodyContents = $this->request($method, $bodyContents['next'], $options, $bodyContents['results']);
+          if ($this->callCount < $this->maxPages) {
+            // Call self for next results.
+            $this->callCount++;
+            $bodyContents = $this->request($method, $bodyContents['next'], $options, $bodyContents['results']);
+          }
         }
       }
     }
