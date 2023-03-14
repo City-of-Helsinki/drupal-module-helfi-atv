@@ -12,6 +12,7 @@ use Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData;
 use Drupal\helfi_helsinki_profiili\TokenExpiredException;
 use GuzzleHttp\ClientInterface;
 use Drupal\Component\Serialization\Json;
+use Drupal\Component\Utility\Xss;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\Psr7\Utils;
@@ -579,10 +580,18 @@ class AtvService {
     $retval = [];
     foreach ($document as $key => $value) {
       if (is_array($value)) {
+        array_walk_recursive(
+          $value,
+          function (&$item) {
+            if (is_string($item)) {
+              $item = Xss::filter($item);
+            }
+          }
+        );
         $contents = Json::encode($value);
       }
       else {
-        $contents = $value;
+        $contents = Xss::filter($value);
       }
       $retval[$key] = [
         'name' => $key,
