@@ -12,10 +12,12 @@ use Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData;
 use Drupal\helfi_helsinki_profiili\TokenExpiredException;
 use GuzzleHttp\ClientInterface;
 use Drupal\Component\Serialization\Json;
+use Drupal\helfi_atv\Event\AtvServiceExceptionEvent;
 use Drupal\Component\Utility\Xss;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\Psr7\Utils;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Communicate with ATV.
@@ -128,6 +130,13 @@ class AtvService {
   protected int $callCount;
 
   /**
+   * The event dispatcher service.
+   *
+   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
+   */
+  protected EventDispatcherInterface $eventDispatcher;
+
+  /**
    * Constructs an AtvService object.
    *
    * @param \GuzzleHttp\ClientInterface $http_client
@@ -138,15 +147,19 @@ class AtvService {
    *   Access to filesystem.
    * @param \Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData $helsinkiProfiiliUserData
    *   Helsinkiprofiili.
+   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
+   *   Event dispatcher.
    */
   public function __construct(
     ClientInterface $http_client,
     LoggerChannelFactory $loggerFactory,
     FileRepository $fileRepository,
-    HelsinkiProfiiliUserData $helsinkiProfiiliUserData
+    HelsinkiProfiiliUserData $helsinkiProfiiliUserData,
+    EventDispatcherInterface $eventDispatcher,
   ) {
     $this->httpClient = $http_client;
     $this->logger = $loggerFactory->get('helfi_atv');
+    $this->eventDispatcher = $eventDispatcher;
 
     $this->baseUrl = getenv('ATV_BASE_URL');
     $this->atvVersion = getenv('ATV_VERSION');
@@ -1122,6 +1135,7 @@ class AtvService {
 
       $msg = $e->getMessage();
       $this->logger->error($msg);
+      $this->dispatchExceptionEvent($e);
 
       if (str_contains($msg, 'cURL error 7')) {
         throw new AtvFailedToConnectException($msg);
@@ -1134,8 +1148,10 @@ class AtvService {
       }
     }
     catch (AtvAuthFailedException $e) {
+      $this->dispatchExceptionEvent($e);
     }
     catch (TokenExpiredException $e) {
+      $this->dispatchExceptionEvent($e);
       /** @var \Drupal\helfi_helsinki_profiili\TokenExpiredException $e */
       throw $e;
     }
@@ -1290,6 +1306,17 @@ class AtvService {
     if ($this->isDebug()) {
       $this->logger->debug($message, $replacements);
     }
+  }
+
+  /**
+   * Dispatches exception event.
+   * 
+   * @param \Exception $exception
+   *   The exception
+   */
+  private function dispatchExceptionEvent($exception) {
+    $event = new AtvServiceExceptionEvent($exception);
+    $this->eventDispatcher->dispatch(AtvServiceExceptionEvent::EVENT_ID, $event);
   }
 
 }
