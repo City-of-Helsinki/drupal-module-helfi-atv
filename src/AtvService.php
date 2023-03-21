@@ -526,7 +526,6 @@ class AtvService {
    * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
    * @throws \GuzzleHttp\Exception\GuzzleException
-   * @throws \Drupal\Core\TempStore\TempStoreException
    */
   public function getDocument(string $id, bool $refetch = FALSE): AtvDocument {
     if ($this->useCache && $refetch === FALSE) {
@@ -743,7 +742,7 @@ class AtvService {
    *
    * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
-   * @throws \GuzzleHttp\Exception\GuzzleException
+   * @throws \GuzzleHttp\Exception\GuzzleException|\Drupal\helfi_helsinki_profiili\TokenExpiredException
    */
   public function deleteAttachment(string $documentId, string $attachmentId): AtvDocument|bool|array|FileInterface {
 
@@ -752,6 +751,34 @@ class AtvService {
     return $this->doRequest(
       'DELETE',
       $this->buildUrl($url),
+      [
+        'headers' => $this->headers,
+      ]
+    );
+  }
+
+  /**
+   * Delete document attachment from ATV.
+   *
+   * @param string $attachmentUrl
+   *   Url of an attachment.
+   *
+   * @return array|bool|\Drupal\file\FileInterface|\Drupal\helfi_atv\AtvDocument
+   *   If removal succeeed.
+   *
+   * @throws \Drupal\helfi_atv\AtvAuthFailedException
+   * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
+   * @throws \Drupal\helfi_atv\AtvFailedToConnectException
+   * @throws \Drupal\helfi_helsinki_profiili\TokenExpiredException
+   * @throws \GuzzleHttp\Exception\GuzzleException
+   */
+  public function deleteAttachmentByUrl(string $attachmentUrl): AtvDocument|bool|array|FileInterface {
+
+    $this->setAuthHeaders();
+
+    return $this->doRequest(
+      'DELETE',
+      $attachmentUrl,
       [
         'headers' => $this->headers,
       ]
@@ -804,6 +831,17 @@ class AtvService {
    */
   public function uploadAttachment(string $documentId, string $filename, File $file): mixed {
 
+    try {
+      $this->setAuthHeaders();
+    }
+    catch (AtvAuthFailedException | TokenExpiredException $e) {
+      $this->logger->error(
+        'File upload failed with error: @error',
+        ['@error' => $e->getMessage()]
+          );
+      return FALSE;
+    }
+
     $headers = $this->headers;
     $headers['Content-Disposition'] = 'attachment; filename="' . $filename . '"';
     $headers['Content-Type'] = 'application/octet-stream';
@@ -822,14 +860,23 @@ class AtvService {
       'contents' => $body,
     ];
 
-    $retval = $this->doRequest(
-      'POST',
-      $this->buildUrl('documents/' . $documentId . '/attachments'),
-      [
-        'headers' => $headers,
-        'multipart' => [$data],
-      ]
-    );
+    try {
+      $retval = $this->doRequest(
+        'POST',
+        $this->buildUrl('documents/' . $documentId . '/attachments'),
+        [
+          'headers' => $headers,
+          'multipart' => [$data],
+        ]
+      );
+
+    }
+    catch (AtvAuthFailedException | TokenExpiredException $e) {
+      $this->logger->error(
+        'File upload failed with error: @error',
+        ['@error' => $e->getMessage()]
+          );
+    }
 
     if (empty($retval)) {
       return FALSE;
@@ -1007,10 +1054,12 @@ class AtvService {
       /** @var \GuzzleHttp\Psr7\Response */
       $response = $responseContent['response'];
 
-      if ($response->getStatusCode() == 204) {
-        if ($method == 'DELETE') {
+      // ATV return 204 when deleting stuff.
+      if ($method == 'DELETE') {
+        if ($response->getStatusCode() == 204) {
           return TRUE;
         }
+        return FALSE;
       }
 
       // @todo Check if there's any point doing these if's here?!?!
