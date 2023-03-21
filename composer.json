@@ -11,6 +11,6 @@
         }
     },
     "require": {
-        "drupal/helfi_helsinki_profiili": "^0.9"
+        "drupal/helfi_helsinki_profiili": "*"
     }
 }
