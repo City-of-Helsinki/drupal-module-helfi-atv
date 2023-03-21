@@ -5,5 +5,10 @@ services:
       '@http_client',
       '@logger.factory',
       '@file.repository',
-      '@helfi_helsinki_profiili.userdata'
+      '@helfi_helsinki_profiili.userdata',
+      '@event_dispatcher'
     ]
+  helfi_atv.exception_event_subscriber:
+    class: 'Drupal\helfi_atv\EventSubscriber\AtvServiceExceptionEventSubscriber'
+    tags:
+      - { name: event_subscriber }

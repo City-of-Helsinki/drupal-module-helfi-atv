@@ -12,9 +12,12 @@ use Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData;
 use Drupal\helfi_helsinki_profiili\TokenExpiredException;
 use GuzzleHttp\ClientInterface;
 use Drupal\Component\Serialization\Json;
+use Drupal\helfi_atv\Event\AtvServiceExceptionEvent;
+use Drupal\Component\Utility\Xss;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\Psr7\Utils;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Communicate with ATV.
@@ -127,6 +130,13 @@ class AtvService {
   protected int $callCount;
 
   /**
+   * The event dispatcher service.
+   *
+   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
+   */
+  protected EventDispatcherInterface $eventDispatcher;
+
+  /**
    * Constructs an AtvService object.
    *
    * @param \GuzzleHttp\ClientInterface $http_client
@@ -137,15 +147,19 @@ class AtvService {
    *   Access to filesystem.
    * @param \Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData $helsinkiProfiiliUserData
    *   Helsinkiprofiili.
+   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
+   *   Event dispatcher.
    */
   public function __construct(
     ClientInterface $http_client,
     LoggerChannelFactory $loggerFactory,
     FileRepository $fileRepository,
-    HelsinkiProfiiliUserData $helsinkiProfiiliUserData
+    HelsinkiProfiiliUserData $helsinkiProfiiliUserData,
+    EventDispatcherInterface $eventDispatcher,
   ) {
     $this->httpClient = $http_client;
     $this->logger = $loggerFactory->get('helfi_atv');
+    $this->eventDispatcher = $eventDispatcher;
 
     $this->baseUrl = getenv('ATV_BASE_URL');
     $this->atvVersion = getenv('ATV_VERSION');
@@ -525,7 +539,6 @@ class AtvService {
    * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
    * @throws \GuzzleHttp\Exception\GuzzleException
-   * @throws \Drupal\Core\TempStore\TempStoreException
    */
   public function getDocument(string $id, bool $refetch = FALSE): AtvDocument {
     if ($this->useCache && $refetch === FALSE) {
@@ -579,10 +592,18 @@ class AtvService {
     $retval = [];
     foreach ($document as $key => $value) {
       if (is_array($value)) {
+        array_walk_recursive(
+          $value,
+          function (&$item) {
+            if (is_string($item)) {
+              $item = Xss::filter($item);
+            }
+          }
+        );
         $contents = Json::encode($value);
       }
       else {
-        $contents = $value;
+        $contents = Xss::filter($value);
       }
       $retval[$key] = [
         'name' => $key,
@@ -734,7 +755,7 @@ class AtvService {
    *
    * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
-   * @throws \GuzzleHttp\Exception\GuzzleException
+   * @throws \GuzzleHttp\Exception\GuzzleException|\Drupal\helfi_helsinki_profiili\TokenExpiredException
    */
   public function deleteAttachment(string $documentId, string $attachmentId): AtvDocument|bool|array|FileInterface {
 
@@ -743,6 +764,34 @@ class AtvService {
     return $this->doRequest(
       'DELETE',
       $this->buildUrl($url),
+      [
+        'headers' => $this->headers,
+      ]
+    );
+  }
+
+  /**
+   * Delete document attachment from ATV.
+   *
+   * @param string $attachmentUrl
+   *   Url of an attachment.
+   *
+   * @return array|bool|\Drupal\file\FileInterface|\Drupal\helfi_atv\AtvDocument
+   *   If removal succeeed.
+   *
+   * @throws \Drupal\helfi_atv\AtvAuthFailedException
+   * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
+   * @throws \Drupal\helfi_atv\AtvFailedToConnectException
+   * @throws \Drupal\helfi_helsinki_profiili\TokenExpiredException
+   * @throws \GuzzleHttp\Exception\GuzzleException
+   */
+  public function deleteAttachmentByUrl(string $attachmentUrl): AtvDocument|bool|array|FileInterface {
+
+    $this->setAuthHeaders();
+
+    return $this->doRequest(
+      'DELETE',
+      $attachmentUrl,
       [
         'headers' => $this->headers,
       ]
@@ -795,6 +844,17 @@ class AtvService {
    */
   public function uploadAttachment(string $documentId, string $filename, File $file): mixed {
 
+    try {
+      $this->setAuthHeaders();
+    }
+    catch (AtvAuthFailedException | TokenExpiredException $e) {
+      $this->logger->error(
+        'File upload failed with error: @error',
+        ['@error' => $e->getMessage()]
+          );
+      return FALSE;
+    }
+
     $headers = $this->headers;
     $headers['Content-Disposition'] = 'attachment; filename="' . $filename . '"';
     $headers['Content-Type'] = 'application/octet-stream';
@@ -813,14 +873,23 @@ class AtvService {
       'contents' => $body,
     ];
 
-    $retval = $this->doRequest(
-      'POST',
-      $this->buildUrl('documents/' . $documentId . '/attachments'),
-      [
-        'headers' => $headers,
-        'multipart' => [$data],
-      ]
-    );
+    try {
+      $retval = $this->doRequest(
+        'POST',
+        $this->buildUrl('documents/' . $documentId . '/attachments'),
+        [
+          'headers' => $headers,
+          'multipart' => [$data],
+        ]
+      );
+
+    }
+    catch (AtvAuthFailedException | TokenExpiredException $e) {
+      $this->logger->error(
+        'File upload failed with error: @error',
+        ['@error' => $e->getMessage()]
+          );
+    }
 
     if (empty($retval)) {
       return FALSE;
@@ -998,10 +1067,12 @@ class AtvService {
       /** @var \GuzzleHttp\Psr7\Response */
       $response = $responseContent['response'];
 
-      if ($response->getStatusCode() == 204) {
-        if ($method == 'DELETE') {
+      // ATV return 204 when deleting stuff.
+      if ($method == 'DELETE') {
+        if ($response->getStatusCode() == 204) {
           return TRUE;
         }
+        return FALSE;
       }
 
       // @todo Check if there's any point doing these if's here?!?!
@@ -1064,6 +1135,7 @@ class AtvService {
 
       $msg = $e->getMessage();
       $this->logger->error($msg);
+      $this->dispatchExceptionEvent($e);
 
       if (str_contains($msg, 'cURL error 7')) {
         throw new AtvFailedToConnectException($msg);
@@ -1076,8 +1148,10 @@ class AtvService {
       }
     }
     catch (AtvAuthFailedException $e) {
+      $this->dispatchExceptionEvent($e);
     }
     catch (TokenExpiredException $e) {
+      $this->dispatchExceptionEvent($e);
       /** @var \Drupal\helfi_helsinki_profiili\TokenExpiredException $e */
       throw $e;
     }
@@ -1232,6 +1306,17 @@ class AtvService {
     if ($this->isDebug()) {
       $this->logger->debug($message, $replacements);
     }
+  }
+
+  /**
+   * Dispatches exception event.
+   * 
+   * @param \Exception $exception
+   *   The exception
+   */
+  private function dispatchExceptionEvent($exception) {
+    $event = new AtvServiceExceptionEvent($exception);
+    $this->eventDispatcher->dispatch(AtvServiceExceptionEvent::EVENT_ID, $event);
   }
 
 }
