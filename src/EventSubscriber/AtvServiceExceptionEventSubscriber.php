@@ -36,13 +36,15 @@ class AtvServiceExceptionEventSubscriber implements EventSubscriberInterface {
           'target' => [
             'message' => $exception->getMessage(),
             'type' => get_class($exception),
-            'module' => 'helfi_atv'
-          ]
+            'module' => 'helfi_atv',
+          ],
         ];
 
         $auditlogService->dispatchEvent($message);
       }
-    } catch (\Exception $e) {
+    }
+    catch (\Exception $e) {
     }
   }
+
 }

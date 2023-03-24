@@ -147,7 +147,7 @@ class AtvService {
    *   Access to filesystem.
    * @param \Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData $helsinkiProfiiliUserData
    *   Helsinkiprofiili.
-   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
+   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $eventDispatcher
    *   Event dispatcher.
    */
   public function __construct(
@@ -267,7 +267,7 @@ class AtvService {
     // use token based auth.
     // Token based auth must be explicitly set to true to
     // enable token based auth.
-    if ($hasAdminRole != TRUE && $hasHpRole == TRUE && $useTokenAuth == 'true') {
+    if ($hasAdminRole !== TRUE && $hasHpRole === TRUE && $useTokenAuth == 'true') {
 
       $this->debugPrint('setAuthHeaders-> Token auth & no admin role but HAS HP role');
 
@@ -340,15 +340,15 @@ class AtvService {
 
     // Recursively iterates array and adds key/value to glued string.
     array_walk_recursive($array, function ($value, $key) use ($glue, $include_keys, &$glued_string) {
-      $include_keys and $glued_string .= $key . $glue;
+      $include_keys && $glued_string .= $key . $glue;
       $glued_string .= $value . $glue;
     });
 
     // Removes last $glue from string.
-    strlen($glue) > 0 and $glued_string = substr($glued_string, 0, -strlen($glue));
+    strlen($glue) > 0 && $glued_string = substr($glued_string, 0, -strlen($glue));
 
     // Trim ALL whitespace.
-    $trim_all and $glued_string = preg_replace("/(\s)/ixsm", '', $glued_string);
+    $trim_all && $glued_string = preg_replace("/(\s)/ixsm", '', $glued_string);
 
     return (string) $glued_string;
   }
@@ -381,10 +381,8 @@ class AtvService {
     // key for cache.
     $cacheKey = sha1(self::recursiveImplode('-', $cache, TRUE, TRUE));
 
-    if ($this->useCache) {
-      if ($this->isCached($cacheKey)) {
-        return $this->getFromCache($cacheKey);
-      }
+    if ($this->useCache && $this->isCached($cacheKey)) {
+      return $this->getFromCache($cacheKey);
     }
 
     $responseData = $this->doRequest(
@@ -538,13 +536,11 @@ class AtvService {
    *
    * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
-   * @throws \GuzzleHttp\Exception\GuzzleException
+   * @throws \GuzzleHttp\Exception\GuzzleException|\Drupal\helfi_helsinki_profiili\TokenExpiredException
    */
   public function getDocument(string $id, bool $refetch = FALSE): AtvDocument {
-    if ($this->useCache && $refetch === FALSE) {
-      if ($this->isCached($id)) {
-        return $this->getFromCache($id);
-      }
+    if (($this->useCache && $refetch === FALSE) && $this->isCached($id)) {
+      return $this->getFromCache($id);
     }
 
     $response = $this->doRequest(
@@ -981,20 +977,18 @@ class AtvService {
     /** @var \GuzzleHttp\Psr7\Response */
     $bodyContents['response'] = $resp;
 
-    if (isset($bodyContents['count'])) {
-      if ($bodyContents['count'] !== count($bodyContents['results'])) {
-        $bodyContents['results'] = array_merge($bodyContents['results'] ?? [], $prevRes);
-        // Merge new results with old ones.
-        if (isset($bodyContents['next']) && !empty($bodyContents['next'])) {
-          // Replace hostname if we are running in local environment.
-          if (str_contains(strtolower($this->appEnvironment), "local")) {
-            $bodyContents['next'] = str_replace(".apps.", ".agw.", $bodyContents['next']);
-          }
-          if ($this->callCount < $this->maxPages) {
-            // Call self for next results.
-            $this->callCount++;
-            $bodyContents = $this->request($method, $bodyContents['next'], $options, $bodyContents['results']);
-          }
+    if (isset($bodyContents['count']) && $bodyContents['count'] !== count($bodyContents['results'])) {
+      $bodyContents['results'] = array_merge($bodyContents['results'] ?? [], $prevRes);
+      // Merge new results with old ones.
+      if (isset($bodyContents['next']) && !empty($bodyContents['next'])) {
+        // Replace hostname if we are running in local environment.
+        if (str_contains(strtolower($this->appEnvironment), "local")) {
+          $bodyContents['next'] = str_replace(".apps.", ".agw.", $bodyContents['next']);
+        }
+        if ($this->callCount < $this->maxPages) {
+          // Call self for next results.
+          $this->callCount++;
+          $bodyContents = $this->request($method, $bodyContents['next'], $options, $bodyContents['results']);
         }
       }
     }
@@ -1254,7 +1248,7 @@ class AtvService {
    * @throws \Drupal\helfi_helsinki_profiili\TokenExpiredException
    */
   public function getGdprData(string $userId, string $token = NULL): AtvDocument|bool|array|FileInterface {
-    $this->setAuthHeaders(FALSE, $token);
+    $this->setAuthHeaders(TRUE);
 
     return $this->doRequest(
       'GET',
@@ -1310,13 +1304,13 @@ class AtvService {
 
   /**
    * Dispatches exception event.
-   * 
+   *
    * @param \Exception $exception
-   *   The exception
+   *   The exception.
    */
-  private function dispatchExceptionEvent($exception) {
+  private function dispatchExceptionEvent(\Exception $exception): void {
     $event = new AtvServiceExceptionEvent($exception);
-    $this->eventDispatcher->dispatch(AtvServiceExceptionEvent::EVENT_ID, $event);
+    $this->eventDispatcher->dispatch($event, AtvServiceExceptionEvent::EVENT_ID);
   }
 
 }
