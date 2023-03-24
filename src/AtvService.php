@@ -1277,7 +1277,7 @@ class AtvService {
    * @throws \Drupal\helfi_helsinki_profiili\TokenExpiredException
    */
   public function deleteGdprData(string $userId, string $token = NULL): AtvDocument|bool|array|FileInterface {
-    $this->setAuthHeaders(FALSE, $token);
+    $this->setAuthHeaders(TRUE);
 
     return $this->doRequest(
       'DELETE',
