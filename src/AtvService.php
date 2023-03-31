@@ -862,25 +862,21 @@ class AtvService {
     // Get file data.
     $body = Utils::tryFopen($filePath, 'r');
 
-    // Form data.
-    $data = [
-      'name' => $filename,
-      'filename' => $filename,
-      'contents' => $body,
-    ];
-
     try {
       $retval = $this->doRequest(
         'POST',
         $this->buildUrl('documents/' . $documentId . '/attachments'),
         [
           'headers' => $headers,
-          'multipart' => [$data],
+          'body' => $body,
         ]
       );
 
     }
     catch (AtvAuthFailedException | TokenExpiredException $e) {
+      // Delete from local filesystem.
+      $file->delete();
+
       $this->logger->error(
         'File upload failed with error: @error',
         ['@error' => $e->getMessage()]
