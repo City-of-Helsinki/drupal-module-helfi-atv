@@ -565,11 +565,12 @@ class AtvService {
    * @param string $id
    *   Transaction id.
    *
-   * @return bool|null
+   * @return bool
    *   Boolean if found.
    *
    * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
    * @throws \Drupal\helfi_atv\AtvFailedToConnectException
+   * @throws \Drupal\helfi_atv\AtvUnexpectedResponseException
    * @throws \GuzzleHttp\Exception\GuzzleException|\Drupal\helfi_helsinki_profiili\TokenExpiredException
    */
   public function checkDocumentExistsByTransactionId(string $id) {
@@ -588,7 +589,9 @@ class AtvService {
       return count($response['results']) === 0;
     }
 
-    return NULL;
+    throw new AtvUnexpectedResponseException(
+      'Results field is missing from the response'
+    );
   }
 
   /**
