@@ -560,6 +560,41 @@ class AtvService {
   }
 
   /**
+   * Check if documents are found with given Trasaction ID.
+   *
+   * @param string $id
+   *   Transaction id.
+   *
+   * @return bool
+   *   Boolean if found.
+   *
+   * @throws \Drupal\helfi_atv\AtvDocumentNotFoundException
+   * @throws \Drupal\helfi_atv\AtvFailedToConnectException
+   * @throws \Drupal\helfi_atv\AtvUnexpectedResponseException
+   * @throws \GuzzleHttp\Exception\GuzzleException|\Drupal\helfi_helsinki_profiili\TokenExpiredException
+   */
+  public function checkDocumentExistsByTransactionId(string $id) {
+    $response = $this->doRequest(
+      'GET',
+      $this->buildUrl('statistics'),
+      [
+        'headers' => $this->headers,
+        'query' => [
+          'transaction_id' => $id
+        ]
+      ]
+    );
+
+    if (isset($response['results'])) {
+      return count($response['results']) === 0;
+    }
+
+    throw new AtvUnexpectedResponseException(
+      'Results field is missing from the response'
+    );
+  }
+
+  /**
    * Parse malformed json.
    *
    * @param string $contentString
