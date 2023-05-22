@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.8
+- c4c8bc4 feat: AU-828: Add method to check document existance by transaction id (#11)
+
+## 0.9.7
+- 374c825 fix: AU-579: Fix file upload prepended data (#10)
+
+## 0.9.6
+- d377b62 fix: GDPR delete apikey
+
+## 0.9.5
+- 26d25a5 fix: Change ATV auth in GDPR calls to use apikey (#9)
+
 ## 0.9.4
 - fix: Change ATV auth in GDPR calls to use apikey (#9)
 
