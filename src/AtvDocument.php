@@ -66,6 +66,15 @@ final class AtvDocument implements \JsonSerializable {
   protected string $service;
 
   /**
+   * Full service details from service object in document.
+   *
+   * This allows us to use "service" field as we've done thus far.
+   *
+   * @var array
+   */
+  protected array $serviceDetails;
+
+  /**
    * Transaction id.
    *
    * @var string
@@ -176,7 +185,15 @@ final class AtvDocument implements \JsonSerializable {
       $object->type = $values['type'];
     }
     if (isset($values['service'])) {
-      $object->service = $values['service'];
+
+      if (is_array($values['service'])) {
+        $object->service = $values['service']['name'];
+        $object->serviceDetails = $values['service'];
+      }
+      else {
+        $object->service = $values['service'];
+      }
+
     }
     if (isset($values['status'])) {
       if (is_array($values['status'])) {
@@ -739,6 +756,16 @@ final class AtvDocument implements \JsonSerializable {
    */
   public function setDeletable(bool $deletable): void {
     $this->deletable = $deletable;
+  }
+
+  /**
+   * Get service details from object.
+   *
+   * @return array
+   *   Service details.
+   */
+  public function getServiceDetails(): array {
+    return $this->serviceDetails;
   }
 
 }

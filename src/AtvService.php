@@ -580,8 +580,8 @@ class AtvService {
       [
         'headers' => $this->headers,
         'query' => [
-          'transaction_id' => $id
-        ]
+          'transaction_id' => $id,
+        ],
       ]
     );
 
