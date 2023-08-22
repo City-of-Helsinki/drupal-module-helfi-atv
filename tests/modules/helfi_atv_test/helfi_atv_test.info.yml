@@ -1,0 +1,8 @@
+name: helfi_atv_test
+type: module
+description: Module for running tests for helfi_atv module
+package: Hel.fi
+core: 8.x
+core_version_requirement: ^8 || ^9
+dependencies:
+  - helfi_helsinki_profiili
