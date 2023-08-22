@@ -14,3 +14,9 @@
 - DEBUG -> set to true to print debugging
 
 note: When ATV properly supports Tunnistamo authentication, api key will be obsolete and users are authorized via tunnistamo.
+
+## Unit tests
+
+This module has unit tests. You need to have this module inside a working drupal installation.
+
+Command to run the tests: ```vendor/bin/phpunit -c public/core public/modules/contrib/helfi_atv```
