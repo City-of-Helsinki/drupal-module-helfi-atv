@@ -2,18 +2,19 @@
 
 namespace Drupal\helfi_atv;
 
+use Drupal\Component\Serialization\Json;
+use Drupal\Component\Utility\Xss;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Logger\LoggerChannelFactory;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
 use Drupal\file\FileRepository;
+use Drupal\helfi_atv\Event\AtvServiceExceptionEvent;
 use Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData;
 use Drupal\helfi_helsinki_profiili\TokenExpiredException;
 use GuzzleHttp\ClientInterface;
-use Drupal\Component\Serialization\Json;
-use Drupal\helfi_atv\Event\AtvServiceExceptionEvent;
-use Drupal\Component\Utility\Xss;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\Psr7\Utils;
@@ -149,6 +150,10 @@ class AtvService {
    *   Helsinkiprofiili.
    * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $eventDispatcher
    *   Event dispatcher.
+   * @param \Drupal\Core\File\FileSystemInterface $fileSystem
+   *   File system.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
+   *   Config factory.
    */
   public function __construct(
     ClientInterface $http_client,
@@ -156,6 +161,8 @@ class AtvService {
     FileRepository $fileRepository,
     HelsinkiProfiiliUserData $helsinkiProfiiliUserData,
     EventDispatcherInterface $eventDispatcher,
+    FileSystemInterface $fileSystem,
+    ConfigFactoryInterface $configFactory,
   ) {
     $this->httpClient = $http_client;
     $this->logger = $loggerFactory->get('helfi_atv');
@@ -171,6 +178,8 @@ class AtvService {
     $this->helsinkiProfiiliUserData = $helsinkiProfiiliUserData;
 
     $this->fileRepository = $fileRepository;
+    $this->fileSystem = $fileSystem;
+    $this->config = $configFactory->get('helfi_atv.settings');
 
     $debug = getenv('DEBUG');
 
@@ -232,7 +241,7 @@ class AtvService {
     // role but no user role then we use apikey for authenticating user.
     $userRoles = $this->helsinkiProfiiliUserData->getCurrentUser()->getRoles();
 
-    $config = \Drupal::config('helfi_atv.settings');
+    $config = $this->config;
     $rolesConfig = $config->get('roles');
 
     $adminRoles = $rolesConfig['admin_user_roles'] ?? [];
@@ -582,8 +591,8 @@ class AtvService {
       [
         'headers' => $this->headers,
         'query' => [
-          'transaction_id' => $id
-        ]
+          'transaction_id' => $id,
+        ],
       ]
     );
 
@@ -894,7 +903,7 @@ class AtvService {
 
     // Get file metadata.
     $fileUri = $file->get('uri')->value;
-    $filePath = \Drupal::service('file_system')->realpath($fileUri);
+    $filePath = $this->fileSystem->realpath($fileUri);
 
     // Get file data.
     $body = Utils::tryFopen($filePath, 'r');
