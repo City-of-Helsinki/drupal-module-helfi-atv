@@ -248,6 +248,7 @@ class AtvService {
         if (in_array($value, $adminRoles)) {
           return TRUE;
         }
+        return $carry;
       },
       FALSE,
     );
@@ -257,6 +258,7 @@ class AtvService {
         if (in_array($value, $hpRoles)) {
           return TRUE;
         }
+        return $carry;
       },
       FALSE,
     );
