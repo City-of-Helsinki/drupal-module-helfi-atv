@@ -2,8 +2,8 @@
 
 namespace Drupal\helfi_atv\EventSubscriber;
 
-use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Drupal\helfi_atv\Event\AtvServiceExceptionEvent;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
  * Monitors submission view events and logs them to audit log.

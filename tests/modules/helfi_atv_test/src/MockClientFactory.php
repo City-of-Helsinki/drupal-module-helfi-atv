@@ -5,11 +5,13 @@ namespace Drupal\helfi_atv_test;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Site\Settings;
 use GuzzleHttp\Client;
-use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
 
 /**
  * Helper class to construct a mock HTTP client with Drupal specific config.
+ *
+ * This is mostly copy of the core file.
  */
 class MockClientFactory {
 
