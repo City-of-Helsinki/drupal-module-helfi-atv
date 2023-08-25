@@ -2,13 +2,19 @@ helfi_atv.settings:
   type: config_object
   mapping:
     roles:
-      type: sequence
+      type: mapping
       label: 'Roles for helsinki profile.'
-      sequence:
+      mapping:
         hp_user_roles:
           type: sequence
           label: 'User roles used with helsinki profile'
+          sequence:
+            type: string
+            label: 'Regular user role'
         admin_user_roles:
           type: sequence
           label: 'Roles for admin users.'
+          sequence:
+            type: string
+            label: 'Admin user role'
 
