@@ -138,6 +138,10 @@ class AtvService {
   protected EventDispatcherInterface $eventDispatcher;
 
   /**
+   * File system.
+   */
+
+  /**
    * Constructs an AtvService object.
    *
    * @param \GuzzleHttp\ClientInterface $http_client
@@ -234,16 +238,14 @@ class AtvService {
     }
 
     $useTokenAuth = getenv('ATV_USE_TOKEN_AUTH');
-
     $this->debugPrint('setAuthHeaders-> User tokenAUTH: @tokeauth', ['@tokeauth' => $useTokenAuth]);
 
     // Here we figure out if user has HP user or ADMIN, and if user has admin
     // role but no user role then we use apikey for authenticating user.
-    $userRoles = $this->helsinkiProfiiliUserData->getCurrentUser()->getRoles();
+    $userRoles = $this->helsinkiProfiiliUserData->getCurrentUserRoles();
 
     $config = $this->config;
     $rolesConfig = $config->get('roles');
-
     $adminRoles = $rolesConfig['admin_user_roles'] ?? [];
     $hpRoles = $rolesConfig['hp_user_roles'] ?? [];
 

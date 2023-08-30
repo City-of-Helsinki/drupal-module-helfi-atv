@@ -3,6 +3,7 @@
 namespace Drupal\Tests\helfi_atv\Kernel;
 
 use Drupal\helfi_atv\AtvService;
+use Drupal\helfi_atv\AtvAuthFailedException;
 use Drupal\KernelTests\KernelTestBase;
 use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\Psr7\Response;
@@ -36,6 +37,7 @@ class AtvServiceTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
+    $this->installConfig(['helfi_atv']);
     putenv('ATV_API_KEY=fake');
     putenv('ATV_BASE_URL=127.0.0.1');
     putenv('ATV_VERSION=1.1');
@@ -108,6 +110,27 @@ class AtvServiceTest extends KernelTestBase {
     $service = \Drupal::service('helfi_atv.atv_service');
     $results = $service->getUserDocuments('test_user');
     $this->assertEquals(15, count($results));
+  }
+
+  function testSetAuthHeaders() {
+    $mockClientFactory = \Drupal::service('http_client_factory');
+    putenv('ATV_API_KEY=fake');
+    putenv('ATV_BASE_URL=127.0.0.1');
+    putenv('ATV_VERSION=1.1');
+    putenv('ATV_USE_CACHE=false');
+    putenv('APP_ENV=UNIT_TEST');
+    putenv('ATV_SERVICE=service');
+    putenv('ATV_MAX_PAGES=10');
+
+    putenv('ATV_USE_TOKEN_AUTH=true');
+    putenv('ATV_TOKEN_NAME=');
+    // Get the service for testing.
+    $service = \Drupal::service('helfi_atv.atv_service');
+    $this->assertEquals(TRUE, $service instanceof AtvService);
+
+    $mockClientFactory->addResponse(new Response(204));
+    $this->expectException(AtvAuthFailedException::class);
+    $service->deleteAttachmentByUrl('url');
   }
 
 }
