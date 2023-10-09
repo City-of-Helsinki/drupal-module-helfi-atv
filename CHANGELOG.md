@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.11
+- ab05189 feat: AU-1407 extend tests (#15)
+- c36daf2 test: AU-1407 Add initial unit tests (#14)
+
 ## 0.9.8
 - c4c8bc4 feat: AU-828: Add method to check document existance by transaction id (#11)
 
