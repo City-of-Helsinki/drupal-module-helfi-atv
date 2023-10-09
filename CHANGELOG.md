@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.11
+- ab05189 feat: AU-1407 extend tests (#15)
+- c36daf2 test: AU-1407 Add initial unit tests (#14)
+
 ## 0.9.10
 - c36daf2 test: AU-1407 Add initial unit tests (#14)
 
