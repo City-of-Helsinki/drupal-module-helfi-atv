@@ -400,7 +400,7 @@ class AtvService {
 
     $responseData = $this->doRequest(
       'GET',
-      $this->buildUrl('documents', $searchParams),
+      $this->buildUrl('documents/', $searchParams),
       [
         'headers' => $this->headers,
       ]
