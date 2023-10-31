@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.13
+- f4c1877 fix: AU-1821: Add slash to documents endpoint (#16)
+
 ## 0.9.11
 - ab05189 feat: AU-1407 extend tests (#15)
 - c36daf2 test: AU-1407 Add initial unit tests (#14)
