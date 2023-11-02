@@ -394,7 +394,7 @@ class AtvService {
     // key for cache.
     $cacheKey = sha1(self::recursiveImplode('-', $cache, TRUE, TRUE));
 
-    if ($this->useCache && $this->isCached($cacheKey)) {
+    if (($this->useCache && $refetch === FALSE) && $this->isCached($cacheKey)) {
       return $this->getFromCache($cacheKey);
     }
 
