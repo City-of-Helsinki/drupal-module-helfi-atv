@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.14
+- 76652d8 fix: Use refetch parameter in searchDocuments method
+
 ## 0.9.13
 - f4c1877 fix: AU-1821: Add slash to documents endpoint (#16)
 
