@@ -124,6 +124,13 @@ class AtvService {
   protected int $maxPages;
 
   /**
+   * Amount of results per page.
+   *
+   * @var int
+   */
+  protected int $resultsPerPage;
+
+  /**
    * Current call count with multi-pages results.
    *
    * @var int
@@ -197,11 +204,14 @@ class AtvService {
     $this->requestCache = [];
     $this->headers = [];
 
+    $this->maxPages = 10;
     if (getenv('ATV_MAX_PAGES')) {
       $this->maxPages = getenv('ATV_MAX_PAGES');
     }
-    else {
-      $this->maxPages = 10;
+    // ATV default is 20.
+    $this->$resultsPerPage = 20;
+    if (getenv('ATV_PAGE_SIZE')) {
+      $this->$resultsPerPage = getenv('ATV_PAGE_SIZE');
     }
 
     $this->callCount = 0;
@@ -397,7 +407,7 @@ class AtvService {
     if (($this->useCache && $refetch === FALSE) && $this->isCached($cacheKey)) {
       return $this->getFromCache($cacheKey);
     }
-
+    $searchParams['page_size'] = $this->$resultsPerPage;
     $responseData = $this->doRequest(
       'GET',
       $this->buildUrl('documents/', $searchParams),

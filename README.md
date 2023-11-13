@@ -6,7 +6,8 @@
 - ATV_USE_CACHE -> boolean to set cache usage, with this set, responses will be cached for single request.
 - ATV_API_KEY -> api key to access services
 - ATV_USE_TOKEN_AUTH -> true / false. If true, use user JWT token for authentication.
-- ATV_MAX_PAGES -> maximum pages to fetch with single request. defaults to 10
+- ATV_MAX_PAGES -> maximum pages to fetch with single request. Defaults to 10.
+- ATV_PAGE_SIZE -> page size in single search request. Defaults to 20.
 - ATV_SERVICE -> ATV servicename for token based auth
 
 ### Variables from other modules or platform
