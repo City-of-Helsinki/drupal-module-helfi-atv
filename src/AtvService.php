@@ -231,7 +231,6 @@ class AtvService {
   private function setAuthHeaders(bool $useApiKey = FALSE, string $token = NULL): void {
     // If apikey usage is forced, use it.
     if ($useApiKey) {
-      $this->debugPrint('setAuthHeaders useApiKey: @tokeauth', ['@tokeauth' => $useApiKey]);
       $this->headers = [
         'X-Api-Key' => getenv('ATV_API_KEY'),
       ];
@@ -239,8 +238,6 @@ class AtvService {
     }
     // Else if token is given, use it instead of getting one from HP.
     elseif ($token) {
-      $this->debugPrint('ATV Token given, bypass HP token fetching, got token: @token', ['@token' => $token]);
-
       $this->headers = [
         'Authorization' => 'Bearer ' . $token,
       ];
@@ -248,7 +245,6 @@ class AtvService {
     }
 
     $useTokenAuth = getenv('ATV_USE_TOKEN_AUTH');
-    $this->debugPrint('setAuthHeaders-> User tokenAUTH: @tokeauth', ['@tokeauth' => $useTokenAuth]);
 
     // Here we figure out if user has HP user or ADMIN, and if user has admin
     // role but no user role then we use apikey for authenticating user.
@@ -264,36 +260,15 @@ class AtvService {
     }
 
     // Has user admin role?
-    $hasAdminRole = array_reduce($userRoles,
-      function ($carry, $value) use ($adminRoles) {
-        if (in_array($value, $adminRoles)) {
-          return TRUE;
-        }
-        return $carry;
-      },
-      FALSE,
-    );
+    $hasAdminRole = self::hasAllowedRole($adminRoles, $userRoles);
     // What about helsinki profile role then?
-    $hasHpRole = array_reduce($userRoles,
-      function ($carry, $value) use ($hpRoles) {
-        if (in_array($value, $hpRoles)) {
-          return TRUE;
-        }
-        return $carry;
-      },
-      FALSE,
-    );
-
-    $this->debugPrint('setAuthHeaders-> User roles: @roles', ['@roles' => Json::encode($userRoles)]);
+    $hasHpRole = self::hasAllowedRole($hpRoles, $userRoles);
 
     // If user does not have admin role but has user role,
     // use token based auth.
     // Token based auth must be explicitly set to true to
     // enable token based auth.
     if ($hasAdminRole !== TRUE && $hasHpRole === TRUE && $useTokenAuth == 'true') {
-
-      $this->debugPrint('setAuthHeaders-> Token auth & no admin role but HAS HP role');
-
       $tokenName = getenv('ATV_TOKEN_NAME');
       if (!empty($tokenName)) {
         $this->atvTokenName = $tokenName;
@@ -301,25 +276,20 @@ class AtvService {
       else {
         throw new AtvAuthFailedException('No auth token name set.');
       }
-
+      $this->debugPrint('Get API Access Token from Helsinki Profiili.');
       $tokens = $this->helsinkiProfiiliUserData->getApiAccessTokens();
       if (is_array($tokens) && isset($tokens[$this->atvTokenName])) {
-
-        $this->debugPrint('ATV Token auth, got tokens: @tokens', ['@tokens' => Json::encode(array_keys($tokens))]);
-
         $this->headers = [
           'Authorization' => 'Bearer ' . $tokens[$this->atvTokenName],
         ];
-      }
-      else {
-        $this->debugPrint('ATV Token auth, tokens FAIL: @tokens', ['@tokens' => Json::encode($tokens)]);
+      } else {
+        throw new AtvAuthFailedException('No token from HelsinkiProfiili.');
       }
 
     }
     // If user has admin role, then use apikey.
     // Or if the token usage has been disabled.
     elseif ($hasAdminRole == TRUE || $useTokenAuth == 'false') {
-      $this->debugPrint('Has admin role + tries API key');
       $this->headers = [
         'X-Api-Key' => getenv('ATV_API_KEY'),
       ];
@@ -327,9 +297,33 @@ class AtvService {
     else {
       $this->headers = [];
       $this->logger->error('User is trying to access ATV but has not been externally authenticated.');
+      throw new AtvAuthFailedException('User is not externally authenticated.');
     }
   }
 
+  /**
+   * Check if any role value is in the allowed array.
+   *
+   * @param array $allowedRoles
+   *   Allowed roles.
+   * @param array $roles
+   *   Roles of the user.
+   *
+   * @return bool
+   *   Was any of the user roles allowed.
+   */
+  public static function hasAllowedRole(array $allowedRoles, array $roles): bool {
+    $hasRole = array_reduce($roles,
+      function ($carry, $value) use ($allowedRoles) {
+        if (in_array($value, $allowedRoles)) {
+          return TRUE;
+        }
+        return $carry;
+      },
+      FALSE,
+    );
+    return $hasRole;
+  }
   /**
    * Create new ATVDocument.
    *
@@ -392,18 +386,11 @@ class AtvService {
    * @throws \GuzzleHttp\Exception\GuzzleException
    */
   public function searchDocuments(array $searchParams, bool $refetch = FALSE): array {
-
-    $requestStartTime = 0;
-    if ($this->isDebug()) {
-      $requestStartTime = floor(microtime(TRUE) * 1000);
-    }
-
     $cache = $searchParams;
     unset($cache['lookfor']);
     // Recursevily implode & sha1 string to be used as standard length
     // key for cache.
     $cacheKey = sha1(self::recursiveImplode('-', $cache, TRUE, TRUE));
-
     if (($this->useCache && $refetch === FALSE) && $this->isCached($cacheKey)) {
       return $this->getFromCache($cacheKey);
     }
@@ -432,15 +419,6 @@ class AtvService {
       }
       $this->setToCache($cacheKey, $responseData['results']);
     }
-
-    if ($this->isDebug()) {
-      $requestEndTime = floor(microtime(TRUE) * 1000);
-      $this->logger->debug('Search documents with @key took @ms ms', [
-        '@key' => $cacheKey,
-        '@ms' => $requestEndTime - $requestStartTime,
-      ]);
-    }
-
     return $responseData['results'];
   }
 
@@ -467,17 +445,15 @@ class AtvService {
     if (!empty($transaction_id)) {
       $params['transaction_id'] = $transaction_id;
     }
-
+    $useApiKey = TRUE;
     $responseData = $this->doRequest(
       'GET',
       $this->buildUrl('userdocuments/' . $sub . '/', $params),
       [
-        'headers' => [
-          'X-Api-Key' => getenv('ATV_API_KEY'),
-        ],
-      ]
+        'headers' => $this->headers
+      ],
+      $useApiKey,
     );
-
     return $responseData['results'] ?? [];
   }
 
@@ -840,9 +816,6 @@ class AtvService {
    * @throws \GuzzleHttp\Exception\GuzzleException
    */
   public function deleteAttachmentByUrl(string $attachmentUrl): AtvDocument|bool|array|FileInterface {
-
-    $this->setAuthHeaders();
-
     return $this->doRequest(
       'DELETE',
       $attachmentUrl,
@@ -897,18 +870,6 @@ class AtvService {
    * @throws \GuzzleHttp\Exception\GuzzleException
    */
   public function uploadAttachment(string $documentId, string $filename, File $file): mixed {
-
-    try {
-      $this->setAuthHeaders();
-    }
-    catch (AtvAuthFailedException | TokenExpiredException $e) {
-      $this->logger->error(
-        'File upload failed with error: @error',
-        ['@error' => $e->getMessage()]
-          );
-      return FALSE;
-    }
-
     $headers = $this->headers;
     $headers['Content-Disposition'] = 'attachment; filename="' . $filename . '"';
     $headers['Content-Type'] = 'application/octet-stream';
@@ -966,13 +927,9 @@ class AtvService {
    * @throws \GuzzleHttp\Exception\GuzzleException
    */
   protected function request(string $method, string $url, array $options, array $prevRes = []): array {
-
-    $this->debugPrint('request-> called');
-
     $requestStartTime = 0;
     if ($this->isDebug()) {
       $requestStartTime = floor(microtime(TRUE) * 1000);
-      ;
     }
     $resp = $this->httpClient->request(
       $method,
@@ -982,7 +939,6 @@ class AtvService {
 
     if ($this->isDebug()) {
       $requestEndTime = floor(microtime(TRUE) * 1000);
-      ;
       $this->logger->debug('ATV @method query @url took @ms ms', [
         '@method' => $method,
         '@url' => $url,
@@ -1030,7 +986,6 @@ class AtvService {
 
     /** @var \GuzzleHttp\Psr7\Response */
     $bodyContents['response'] = $resp;
-
     if (isset($bodyContents['count']) && $bodyContents['count'] !== count($bodyContents['results'])) {
       $bodyContents['results'] = array_merge($bodyContents['results'] ?? [], $prevRes);
       // Merge new results with old ones.
@@ -1077,31 +1032,22 @@ class AtvService {
     bool $apiKeyAuth = FALSE
   ): array|AtvDocument|bool|FileInterface {
     try {
-
-      $this->debugPrint('doRequest->');
-
       if ($apiKeyAuth) {
-        $this->debugPrint('doRequest-> use api key');
         // Set headers from configs.
         $this->setAuthHeaders(TRUE);
 
       }
       // If we don't have Authorization headers, we need to get them.
       elseif (empty($options['headers'])) {
-        $this->debugPrint('doRequest-> Headers empty, try set them');
         // Set headers from configs.
         $this->setAuthHeaders();
 
-        $this->debugPrint('doRequest-> Headers empty, after setAuthHeaders call. @headers', ['@headers' => Json::encode($this->headers)]);
-
         // If we have others, but auth is missing. let's override them only.
         if (!empty($this->headers['Authorization'])) {
-          $this->debugPrint('doRequest-> Authorization headers set');
           $options['headers']['Authorization'] = $this->headers['Authorization'];
         }
         // If we have X-APi-Key, then use it.
         if (!empty($this->headers['X-Api-Key'])) {
-          $this->debugPrint('doRequest-> X-Api-Key headers set');
           $options['headers']['X-Api-Key'] = $this->headers['X-Api-Key'];
         }
       }
@@ -1197,6 +1143,7 @@ class AtvService {
     }
     catch (AtvAuthFailedException $e) {
       $this->dispatchExceptionEvent($e);
+      throw $e;
     }
     catch (TokenExpiredException $e) {
       $this->dispatchExceptionEvent($e);
@@ -1239,6 +1186,7 @@ class AtvService {
    *   Data in cache or null
    */
   protected function getFromCache(string $key): ?array {
+    $this->debugPrint('Loading from cache with key @key.', ['@key' => $key]);
     return $this->requestCache[$key] ?? NULL;
   }
 
@@ -1302,14 +1250,14 @@ class AtvService {
    * @throws \Drupal\helfi_helsinki_profiili\TokenExpiredException
    */
   public function getGdprData(string $userId, string $token = NULL): AtvDocument|bool|array|FileInterface {
-    $this->setAuthHeaders(TRUE);
-
+    $useApikey = TRUE;
     return $this->doRequest(
       'GET',
       $this->buildUrl('gdpr-api/' . $userId,),
       [
         'headers' => $this->headers,
-      ]
+      ],
+      $useApikey
     );
   }
 
@@ -1331,14 +1279,14 @@ class AtvService {
    * @throws \Drupal\helfi_helsinki_profiili\TokenExpiredException
    */
   public function deleteGdprData(string $userId, string $token = NULL): AtvDocument|bool|array|FileInterface {
-    $this->setAuthHeaders(TRUE);
-
+    $useApiKey = TRUE;
     return $this->doRequest(
       'DELETE',
       $this->buildUrl('gdpr-api/' . $userId),
       [
         'headers' => $this->headers,
-      ]
+      ],
+      $useApiKey,
     );
   }
 
