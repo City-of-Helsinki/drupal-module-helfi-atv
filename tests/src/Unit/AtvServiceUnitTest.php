@@ -3,7 +3,7 @@
 namespace Drupal\Tests\helfi_atv\Unit;
 
 use Drupal\helfi_atv\AtvService;
-use Drupal\Tests\UnitTestBase;
+use Drupal\Tests\UnitTestCase;
 
 /**
  * Tests AtvService class.
@@ -11,7 +11,7 @@ use Drupal\Tests\UnitTestBase;
  * @covers DefaultClass \Drupal\helfi_atva\AtvService
  * @group helfi_atv
  */
-class AtvServiceUnitTest extends UnitTestBase {
+class AtvServiceUnitTest extends UnitTestCase {
 
     /**
      * Test hasAllowedRole method.
@@ -25,7 +25,7 @@ class AtvServiceUnitTest extends UnitTestBase {
         // Test2.
         $allowedRoles2 = ['a1', 'a2', 'a3'];
         $userRoles2 = ['b1', 'b2', 'b3'];
-        $resul2 = AtvService::hasAllowedRole($allowedRoles2, $userRoles2);
+        $result2 = AtvService::hasAllowedRole($allowedRoles2, $userRoles2);
         $this->assertEquals(FALSE, $result2);
         // Test 3.
         $allowedRoles3 = ['d1'];
