@@ -282,7 +282,8 @@ class AtvService {
         $this->headers = [
           'Authorization' => 'Bearer ' . $tokens[$this->atvTokenName],
         ];
-      } else {
+      }
+      else {
         throw new AtvAuthFailedException('No token from HelsinkiProfiili.');
       }
 
@@ -324,6 +325,7 @@ class AtvService {
     );
     return $hasRole;
   }
+
   /**
    * Create new ATVDocument.
    *
@@ -450,7 +452,7 @@ class AtvService {
       'GET',
       $this->buildUrl('userdocuments/' . $sub . '/', $params),
       [
-        'headers' => $this->headers
+        'headers' => $this->headers,
       ],
       $useApiKey,
     );
