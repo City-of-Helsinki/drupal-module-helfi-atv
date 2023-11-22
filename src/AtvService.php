@@ -276,7 +276,6 @@ class AtvService {
       else {
         throw new AtvAuthFailedException('No auth token name set.');
       }
-      $this->debugPrint('Get API Access Token from Helsinki Profiili.');
       $tokens = $this->helsinkiProfiiliUserData->getApiAccessTokens();
       if (is_array($tokens) && isset($tokens[$this->atvTokenName])) {
         $this->headers = [
@@ -447,14 +446,12 @@ class AtvService {
     if (!empty($transaction_id)) {
       $params['transaction_id'] = $transaction_id;
     }
-    $useApiKey = TRUE;
     $responseData = $this->doRequest(
       'GET',
       $this->buildUrl('userdocuments/' . $sub . '/', $params),
       [
         'headers' => $this->headers,
       ],
-      $useApiKey,
     );
     return $responseData['results'] ?? [];
   }
@@ -1252,14 +1249,12 @@ class AtvService {
    * @throws \Drupal\helfi_helsinki_profiili\TokenExpiredException
    */
   public function getGdprData(string $userId, string $token = NULL): AtvDocument|bool|array|FileInterface {
-    $useApikey = TRUE;
     return $this->doRequest(
       'GET',
       $this->buildUrl('gdpr-api/' . $userId,),
       [
         'headers' => $this->headers,
       ],
-      $useApikey
     );
   }
 
@@ -1281,14 +1276,12 @@ class AtvService {
    * @throws \Drupal\helfi_helsinki_profiili\TokenExpiredException
    */
   public function deleteGdprData(string $userId, string $token = NULL): AtvDocument|bool|array|FileInterface {
-    $useApiKey = TRUE;
     return $this->doRequest(
       'DELETE',
       $this->buildUrl('gdpr-api/' . $userId),
       [
         'headers' => $this->headers,
       ],
-      $useApiKey,
     );
   }
 

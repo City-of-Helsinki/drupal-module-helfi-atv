@@ -16,4 +16,13 @@ class MockHelsinkiProfiiliUserData extends HelsinkiProfiiliUserData {
     return ['user', 'helsinkiprofiili'];
   }
 
+  /**
+   * Return tokens for unit tests.
+   */
+  public function getApiAccessTokens(): array {
+    return [
+      'tokenName' => 'token',
+    ];
+  }
+
 }

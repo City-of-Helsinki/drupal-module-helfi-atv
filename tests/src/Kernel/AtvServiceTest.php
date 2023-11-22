@@ -39,6 +39,8 @@ class AtvServiceTest extends KernelTestBase {
     parent::setUp();
     $this->installConfig(['helfi_atv']);
     putenv('ATV_API_KEY=fake');
+    putenv('ATV_USE_TOKEN_AUTH=true');
+    putenv('ATV_TOKEN_NAME=tokenName');
     putenv('ATV_BASE_URL=127.0.0.1');
     putenv('ATV_VERSION=1.1');
     putenv('ATV_USE_CACHE=false');
