@@ -33,18 +33,17 @@ class AtvServiceExceptionEventSubscriber implements EventSubscriberInterface {
    *   An exception event.
    */
   public function onException(AtvServiceExceptionEvent $event) {
-
     $exception = $event->getException();
     $message = [
-      'operation' => 'EXCEPTION',
+      'operation' => 'ATV_QUERY',
+      'status' => 'EXCEPTION',
       'target' => [
-        'message' => $exception->getMessage(),
+        'name' => $exception->getMessage(),
         'type' => get_class($exception),
-        'module' => 'helfi_atv',
       ],
     ];
 
-    $this->auditlogService->dispatchEvent($message);
+    $this->auditLogService->dispatchEvent($message);
   }
 
 }
