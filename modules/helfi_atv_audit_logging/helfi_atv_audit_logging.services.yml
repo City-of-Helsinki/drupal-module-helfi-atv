@@ -1,0 +1,7 @@
+services:
+  helfi_atv_audit_logging.exception_event_subscriber:
+    class: 'Drupal\helfi_atv_audit_logging\EventSubscriber\AtvServiceExceptionEventSubscriber'
+    tags:
+      - { name: event_subscriber }
+    arguments:
+      - '@helfi_audit_log.audit_log'

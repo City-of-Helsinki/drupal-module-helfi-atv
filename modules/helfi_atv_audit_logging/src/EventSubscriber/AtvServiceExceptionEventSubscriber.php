@@ -1,14 +1,22 @@
 <?php
 
-namespace Drupal\helfi_atv\EventSubscriber;
+namespace Drupal\helfi_atv_audit_logging\EventSubscriber;
 
 use Drupal\helfi_atv\Event\AtvServiceExceptionEvent;
+use Drupal\helfi_audit_log\AuditLogService;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
  * Monitors submission view events and logs them to audit log.
  */
 class AtvServiceExceptionEventSubscriber implements EventSubscriberInterface {
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __construct(
+    private AuditLogService $auditLogService
+  ) {}
 
   /**
    * {@inheritdoc}
@@ -25,26 +33,17 @@ class AtvServiceExceptionEventSubscriber implements EventSubscriberInterface {
    *   An exception event.
    */
   public function onException(AtvServiceExceptionEvent $event) {
+    $exception = $event->getException();
+    $message = [
+      'operation' => 'ATV_QUERY',
+      'status' => 'EXCEPTION',
+      'target' => [
+        'name' => $exception->getMessage(),
+        'type' => get_class($exception),
+      ],
+    ];
 
-    try {
-      // Try to get service, this will throw exception if not found.
-      $auditlogService = \Drupal::service('helfi_audit_log.audit_log');
-      if ($auditlogService) {
-        $exception = $event->getException();
-        $message = [
-          'operation' => 'EXCEPTION',
-          'target' => [
-            'message' => $exception->getMessage(),
-            'type' => get_class($exception),
-            'module' => 'helfi_atv',
-          ],
-        ];
-
-        $auditlogService->dispatchEvent($message);
-      }
-    }
-    catch (\Exception $e) {
-    }
+    $this->auditLogService->dispatchEvent($message);
   }
 
 }
