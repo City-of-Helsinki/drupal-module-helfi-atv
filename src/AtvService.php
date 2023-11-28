@@ -1249,12 +1249,14 @@ class AtvService {
    * @throws \Drupal\helfi_helsinki_profiili\TokenExpiredException
    */
   public function getGdprData(string $userId, string $token = NULL): AtvDocument|bool|array|FileInterface {
+    $useApiKey = TRUE;
     return $this->doRequest(
       'GET',
       $this->buildUrl('gdpr-api/' . $userId,),
       [
         'headers' => $this->headers,
       ],
+      $useApiKey,
     );
   }
 
@@ -1276,12 +1278,14 @@ class AtvService {
    * @throws \Drupal\helfi_helsinki_profiili\TokenExpiredException
    */
   public function deleteGdprData(string $userId, string $token = NULL): AtvDocument|bool|array|FileInterface {
+    $useApiKey = TRUE;
     return $this->doRequest(
       'DELETE',
       $this->buildUrl('gdpr-api/' . $userId),
       [
         'headers' => $this->headers,
       ],
+      $useApiKey,
     );
   }
 
