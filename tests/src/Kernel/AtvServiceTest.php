@@ -11,7 +11,7 @@ use GuzzleHttp\Psr7\Response;
 /**
  * Tests AtvService class.
  *
- * @covers DefaultClass \Drupal\helfi_atva\AtvService
+ * @covers \Drupal\helfi_atv\AtvService
  * @group helfi_atv
  */
 class AtvServiceTest extends KernelTestBase {
