@@ -1094,7 +1094,7 @@ class AtvService {
         // If we have normal content, process that.
         if (isset($responseContent['results']) && is_array($responseContent['results'])) {
           $resultDocuments = [];
-          foreach ($responseContent['results'] as $key => $value) {
+          foreach ($responseContent['results'] as $value) {
             if (is_array($value)) {
               $resultDocuments[] = $this->createDocument($value);
             }
@@ -1122,7 +1122,7 @@ class AtvService {
           $bodyContents = Json::decode($bodyContents);
           if (isset($bodyContents['results']) && is_array($bodyContents['results'])) {
             $resultDocuments = [];
-            foreach ($bodyContents['results'] as $key => $value) {
+            foreach ($bodyContents['results'] as $value) {
               $resultDocuments[] = $this->createDocument($value);
             }
             $bodyContents['results'] = $resultDocuments;

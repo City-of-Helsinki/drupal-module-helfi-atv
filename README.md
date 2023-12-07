@@ -10,6 +10,7 @@
 - ATV_PAGE_SIZE -> page size in single search request. Defaults to 20.
 - ATV_SERVICE -> ATV servicename for token based auth
 
+
 ### Variables from other modules or platform
 - APP_ENV -> must be set from parent
 - DEBUG -> set to true to print debugging
