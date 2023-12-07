@@ -1330,7 +1330,7 @@ class AtvService {
   /**
    * Dispatches operation event.
    *
-   * @param $method
+   * @param string $method
    *   The method of the operation.
    * @param string $url
    *   The url of the operation.

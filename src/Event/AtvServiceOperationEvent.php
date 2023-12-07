@@ -14,8 +14,10 @@ class AtvServiceOperationEvent extends Event {
   /**
    * Construct a new event.
    *
-   * @param string $name
-   *   Name of the operation.
+   * @param string $method
+   *   Method of the operation.
+   * @param string $url
+   *   URL of the operation.
    */
   public function __construct(
     private string $method,
