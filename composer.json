@@ -11,6 +11,7 @@
         }
     },
     "require": {
-        "drupal/helfi_helsinki_profiili": "*"
+        "drupal/helfi_helsinki_profiili": "*",
+        "drupal/helfi_tunnistamo": "^2.0"
     }
 }

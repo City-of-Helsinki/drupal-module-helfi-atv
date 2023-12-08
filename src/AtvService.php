@@ -12,6 +12,7 @@ use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
 use Drupal\file\FileRepository;
 use Drupal\helfi_atv\Event\AtvServiceExceptionEvent;
+use Drupal\helfi_atv\Event\AtvServiceOperationEvent;
 use Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData;
 use Drupal\helfi_helsinki_profiili\TokenExpiredException;
 use GuzzleHttp\ClientInterface;
@@ -935,7 +936,7 @@ class AtvService {
       $url,
       $options
     );
-
+    $this->dispatchOperationEvent($method, $url);
     if ($this->isDebug()) {
       $requestEndTime = floor(microtime(TRUE) * 1000);
       $this->logger->debug('ATV @method query @url took @ms ms', [
@@ -1082,7 +1083,7 @@ class AtvService {
         // If we have normal content, process that.
         if (isset($responseContent['results']) && is_array($responseContent['results'])) {
           $resultDocuments = [];
-          foreach ($responseContent['results'] as $key => $value) {
+          foreach ($responseContent['results'] as $value) {
             if (is_array($value)) {
               $resultDocuments[] = $this->createDocument($value);
             }
@@ -1110,7 +1111,7 @@ class AtvService {
           $bodyContents = Json::decode($bodyContents);
           if (isset($bodyContents['results']) && is_array($bodyContents['results'])) {
             $resultDocuments = [];
-            foreach ($bodyContents['results'] as $key => $value) {
+            foreach ($bodyContents['results'] as $value) {
               $resultDocuments[] = $this->createDocument($value);
             }
             $bodyContents['results'] = $resultDocuments;
@@ -1312,6 +1313,19 @@ class AtvService {
   private function dispatchExceptionEvent(\Exception $exception): void {
     $event = new AtvServiceExceptionEvent($exception);
     $this->eventDispatcher->dispatch($event, AtvServiceExceptionEvent::EVENT_ID);
+  }
+
+  /**
+   * Dispatches operation event.
+   *
+   * @param string $method
+   *   The method of the operation.
+   * @param string $url
+   *   The url of the operation.
+   */
+  private function dispatchOperationEvent(string $method, string $url): void {
+    $event = new AtvServiceOperationEvent($method, $url);
+    $this->eventDispatcher->dispatch($event, AtvServiceOperationEvent::EVENT_ID);
   }
 
 }
