@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.16
+- 05b6ffe fix: AU-1928: Reintroduce setAuthHeaders to AtvService to fix profile uploads
+
+## 0.9.15
+- fe67ab1 feat: Module improvements
+
 ## 0.9.14
 - 76652d8 fix: Use refetch parameter in searchDocuments method
 
