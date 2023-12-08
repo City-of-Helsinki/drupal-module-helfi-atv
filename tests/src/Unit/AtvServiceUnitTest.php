@@ -8,7 +8,7 @@ use Drupal\Tests\UnitTestCase;
 /**
  * Tests AtvService class.
  *
- * @covers DefaultClass \Drupal\helfi_atva\AtvService
+ * @covers \Drupal\helfi_atv\AtvService
  * @group helfi_atv
  */
 class AtvServiceUnitTest extends UnitTestCase {
