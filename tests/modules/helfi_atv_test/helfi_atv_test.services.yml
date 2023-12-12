@@ -1,0 +1,5 @@
+services:
+  helfi_atv_test.event_subscriber:
+    class: 'Drupal\helfi_atv_test\EventSubscriber\AtvEventSubscriber'
+    tags:
+      - { name: event_subscriber }

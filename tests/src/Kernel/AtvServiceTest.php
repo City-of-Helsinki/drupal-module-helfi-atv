@@ -80,6 +80,8 @@ class AtvServiceTest extends KernelTestBase {
    * Test paging.
    */
   public function testResultsPaging() {
+    $eventSubscriber = \Drupal::service('helfi_atv_test.event_subscriber');
+    $eventSubscriber->resetCounters();
     $mockClientFactory = \Drupal::service('http_client_factory');
     $mockResult1 = [
       'count' => 15,
@@ -111,7 +113,89 @@ class AtvServiceTest extends KernelTestBase {
     $mockClientFactory->addResponse(new Response(200, [], json_encode($mockResult2)));
     $service = \Drupal::service('helfi_atv.atv_service');
     $results = $service->getUserDocuments('test_user');
+    // Check that module has sent two operation events and no exception ones.
+    $this->assertEquals(2, $eventSubscriber->getOperationCount());
+    $this->assertEquals(0, $eventSubscriber->getExceptionCount());
     $this->assertEquals(15, count($results));
+  }
+
+  /**
+   * Test cache.
+   */
+  public function testCache() {
+    $eventSubscriber = \Drupal::service('helfi_atv_test.event_subscriber');
+    $eventSubscriber->resetCounters();
+    $mockClientFactory = \Drupal::service('http_client_factory');
+    $mockResult1 = [
+      'count' => 2,
+      'results' => [
+        [
+          'transaction_id' => '1234567890123456',
+          'id' => 'id-1',
+        ],
+        [
+          'transaction_id' => '1234567890123457',
+          'id' => 'id-2',
+        ],
+      ],
+    ];
+    $mockResult2 = [
+      'count' => 1,
+      'results' => [
+        [
+          'transaction_id' => '1234567890123458',
+          'id' => 'id-3',
+        ],
+      ],
+    ];
+    $mockClientFactory->addResponse(new Response(200, [], json_encode($mockResult1)));
+    $mockClientFactory->addResponse(new Response(200, [], json_encode($mockResult2)));
+    $service = \Drupal::service('helfi_atv.atv_service');
+    $searchParams = [
+      'lookfor' => 'appenv:test,applicant_type:registered_community,',
+      'business_id' => '1234567-1',
+      'service_name' => 'AvustushakemusIntegraatio',
+    ];
+    $results = $service->searchDocuments($searchParams, FALSE);
+    $this->assertEquals(2, count($results));
+    // Check that module has sent one opration event and no exception ones.
+    $this->assertEquals(1, $eventSubscriber->getOperationCount());
+    $this->assertEquals(0, $eventSubscriber->getExceptionCount());
+    // We should get results from cache.
+    // Order of parameters should not matter.
+    $searchParams2 = [
+      'service_name' => 'AvustushakemusIntegraatio',
+      'business_id' => '1234567-1',
+      'lookfor' => 'appenv:test,applicant_type:registered_community,',
+    ];
+    $results2 = $service->searchDocuments($searchParams2, FALSE);
+    $this->assertEquals(2, count($results2));
+    // Cache hit does increase event numbers.
+    $this->assertEquals(1, $eventSubscriber->getOperationCount());
+    $this->assertEquals(0, $eventSubscriber->getExceptionCount());
+    // Test fetching single document from cache with transaction id.
+    $searchParamsSingle = [
+      'transaction_id' => '1234567890123456',
+    ];
+    $results3 = $service->searchDocuments($searchParamsSingle, FALSE);
+    $this->assertEquals(1, count($results3));
+    $atvDocument = reset($results3);
+    $this->assertEquals('id-1', $atvDocument->getId());
+    // Cache hit does increase event numbers.
+    $this->assertEquals(1, $eventSubscriber->getOperationCount());
+    $this->assertEquals(0, $eventSubscriber->getExceptionCount());
+    // And another one.
+    $searchParamsSingle = [
+      'transaction_id' => '1234567890123457',
+    ];
+    $results4 = $service->searchDocuments($searchParamsSingle, FALSE);
+    $this->assertEquals(1, count($results4));
+    $atvDocument = reset($results4);
+    $this->assertEquals('id-2', $atvDocument->getId());
+    // Cache hit does increase event numbers.
+    $this->assertEquals(1, $eventSubscriber->getOperationCount());
+    $this->assertEquals(0, $eventSubscriber->getExceptionCount());
+
   }
 
   /**
