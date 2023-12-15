@@ -390,6 +390,7 @@ class AtvService {
   public function searchDocuments(array $searchParams, bool $refetch = FALSE): array {
     $cache = $searchParams;
     unset($cache['lookfor']);
+    ksort($cache);
     // Recursevily implode & sha1 string to be used as standard length
     // key for cache.
     $cacheKey = sha1(self::recursiveImplode('-', $cache, TRUE, TRUE));
