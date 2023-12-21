@@ -290,6 +290,15 @@ final class AtvDocument implements \JsonSerializable {
     if (isset($values['deletable'])) {
       $object->deletable = $values['deletable'];
     }
+    if (isset($values['delete_after'])) {
+      $object->deleteAfter = $values['delete_after'];
+    }
+    if (isset($values['document_language'])) {
+      $object->documentLanguage = $values['document_language'];
+    }
+    if (isset($values['content_schema_url'])) {
+      $object->contentSchemaUrl = $values['content_schema_url'];
+    }
 
     return $object;
   }
@@ -392,6 +401,15 @@ final class AtvDocument implements \JsonSerializable {
     }
     if (isset($this->deletable)) {
       $json_array['deletable'] = $this->isDeletable();
+    }
+    if (isset($this->deleteAfter)) {
+      $json_array['delete_after'] = $this->getDeleteAfter();
+    }
+    if (isset($this->documentLanguage)) {
+      $json_array['document_language'] = $this->getDocumentLanguage();
+    }
+    if (isset($this->contentSchemaUrl)) {
+      $json_array['content_schema_url'] = $this->getContentSchemaUrl();
     }
 
     return $json_array;
@@ -811,7 +829,7 @@ final class AtvDocument implements \JsonSerializable {
 
   /**
    * Get delete after date.
-   * @return null|string 
+   * @return null|string
    */
   public function getDeleteAfter(): ?string {
     return $this->deleteAfter;
