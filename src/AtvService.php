@@ -390,6 +390,7 @@ class AtvService {
   public function searchDocuments(array $searchParams, bool $refetch = FALSE): array {
     $cache = $searchParams;
     unset($cache['lookfor']);
+    ksort($cache);
     // Recursevily implode & sha1 string to be used as standard length
     // key for cache.
     $cacheKey = sha1(self::recursiveImplode('-', $cache, TRUE, TRUE));
@@ -870,6 +871,18 @@ class AtvService {
    * @throws \GuzzleHttp\Exception\GuzzleException
    */
   public function uploadAttachment(string $documentId, string $filename, File $file): mixed {
+
+    try {
+      $this->setAuthHeaders();
+    }
+    catch (AtvAuthFailedException | TokenExpiredException $e) {
+      $this->logger->error(
+        'File upload failed with error: @error',
+        ['@error' => $e->getMessage()]
+          );
+      return FALSE;
+    }
+
     $headers = $this->headers;
     $headers['Content-Disposition'] = 'attachment; filename="' . $filename . '"';
     $headers['Content-Type'] = 'application/octet-stream';
