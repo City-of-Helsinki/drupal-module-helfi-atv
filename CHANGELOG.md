@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.18
+- 5e9ec07: feat: AU-1921 new property getters & setters 
+## 0.9.17
+- 87bbf92 feat: AU-710: Log normal requests
 ## 0.9.16
 - 05b6ffe fix: AU-1928: Reintroduce setAuthHeaders to AtvService to fix profile uploads
 
