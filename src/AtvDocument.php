@@ -133,6 +133,27 @@ final class AtvDocument implements \JsonSerializable {
   protected string $lockedAfter;
 
   /**
+   * Document language - ISO-639-1 - Max length 5 characters.
+   *
+   * @var string
+   */
+  protected ?string $documentLanguage;
+
+  /**
+   * Date which after the document and related attachments are permanently deleted
+   *
+   * @var string
+   */
+  protected ?string $deleteAfter;
+
+  /**
+   * Date which after the document and related attachments are permanently deleted
+   *
+   * @var string
+   */
+  protected ?string $contentSchemaUrl;
+
+  /**
    * Document content. Encrypted in ATV.
    *
    * @var array
@@ -269,6 +290,15 @@ final class AtvDocument implements \JsonSerializable {
     if (isset($values['deletable'])) {
       $object->deletable = $values['deletable'];
     }
+    if (isset($values['delete_after'])) {
+      $object->deleteAfter = $values['delete_after'];
+    }
+    if (isset($values['document_language'])) {
+      $object->documentLanguage = $values['document_language'];
+    }
+    if (isset($values['content_schema_url'])) {
+      $object->contentSchemaUrl = $values['content_schema_url'];
+    }
 
     return $object;
   }
@@ -371,6 +401,15 @@ final class AtvDocument implements \JsonSerializable {
     }
     if (isset($this->deletable)) {
       $json_array['deletable'] = $this->isDeletable();
+    }
+    if (isset($this->deleteAfter)) {
+      $json_array['delete_after'] = $this->getDeleteAfter();
+    }
+    if (isset($this->documentLanguage)) {
+      $json_array['document_language'] = $this->getDocumentLanguage();
+    }
+    if (isset($this->contentSchemaUrl)) {
+      $json_array['content_schema_url'] = $this->getContentSchemaUrl();
     }
 
     return $json_array;
@@ -767,5 +806,71 @@ final class AtvDocument implements \JsonSerializable {
   public function getServiceDetails(): array {
     return $this->serviceDetails;
   }
+
+  /**
+   * Get document language.
+   *
+   * @return null|string
+   *   Document language in ISO-639-1 if set.
+   */
+  public function getDocumentLanguage(): ?string {
+    return $this->documentLanguage;
+  }
+
+  /**
+   * Set the document language.
+   *
+   * @param string $documentLanguage
+   *   Lnaguage code in ISO-639-1 format and maximum 5 of characters.
+   */
+  public function setDocumentLanguage(string $documentLanguage) {
+    $this->documentLanguage = $documentLanguage;
+  }
+
+  /**
+   * Get delete after date.
+   * @return null|string
+   */
+  public function getDeleteAfter(): ?string {
+    return $this->deleteAfter;
+  }
+
+  /**
+   * Set delete after timestamp.
+   *
+   *  @param string $deleteAfter
+   *   Date string which after the document and
+   *   related attachments are permanently deleted.
+   *
+   *   For example "2022-12-12"
+   *
+   * @return null|string
+   *   Date string if set.
+   */
+  public function setDeleteAfter(string $deleteAfter) {
+    $this->deleteAfter = $deleteAfter;
+  }
+
+  /**
+   * Set content schema url
+   * @return null|string
+   */
+  public function getContentSchemaUrl(): ?string {
+    return $this->contentSchemaUrl;
+  }
+
+  /**
+   * Set content schema url.
+   *
+   *  @param string $contentSchemaUrl
+   *   Link to content schema if available
+   *
+   * @return null|string
+   *   Date string if set.
+   */
+  public function setContentSchemaUrl(string $contentSchemaUrl) {
+    $this->contentSchemaUrl = $contentSchemaUrl;
+  }
+
 
 }
