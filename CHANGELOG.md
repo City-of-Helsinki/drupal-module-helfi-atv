@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.9.19
+- e28f5d1: fix: AU-2214: Set X-Api-Key headers in doRequest if using the api key flag
 ## 0.9.18
 - 5e9ec07: feat: AU-1921 new property getters & setters 
 ## 0.9.17
