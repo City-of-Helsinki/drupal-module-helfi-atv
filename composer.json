@@ -4,7 +4,7 @@
     "type": "drupal-module",
     "license": "GPL-2.0-or-later",
     "minimum-stability": "dev",
-    "version": "0.9.21",
+    "version": "0.9.22",
     "autoload": {
         "psr-4": {
             "Drupal\\HelfiAtv\\": "src/"
@@ -12,6 +12,6 @@
     },
     "require": {
         "drupal/helfi_helsinki_profiili": "*",
-        "drupal/helfi_tunnistamo": "^2.0"
+        "drupal/helfi_tunnistamo": "^3.0"
     }
 }
