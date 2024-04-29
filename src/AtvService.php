@@ -183,7 +183,7 @@ class AtvService {
    */
   public function __construct(
     ClientInterface $http_client,
-    LoggerChannelFactory $loggerFactory,
+    LoggerChannelFactoryInterface $loggerFactory,
     FileRepository $fileRepository,
     HelsinkiProfiiliUserData $helsinkiProfiiliUserData,
     EventDispatcherInterface $eventDispatcher,
