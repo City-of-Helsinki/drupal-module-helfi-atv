@@ -5,9 +5,11 @@ namespace Drupal\helfi_atv;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Logger\LoggerChannelFactory;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
 use Drupal\file\FileRepository;
@@ -147,6 +149,19 @@ class AtvService {
 
   /**
    * File system.
+   *
+   * @var \Drupal\Core\File\FileSystemInterface
+   */
+  protected FileSystemInterface $fileSystem;
+
+  /**
+   * Module configuration.
+   *
+   * @var \Drupal\Core\Config\ImmutableConfig
+   */
+  protected ImmutableConfig $config;
+  /**
+   * File system.
    */
 
   /**
@@ -169,7 +184,7 @@ class AtvService {
    */
   public function __construct(
     ClientInterface $http_client,
-    LoggerChannelFactory $loggerFactory,
+    LoggerChannelFactoryInterface $loggerFactory,
     FileRepository $fileRepository,
     HelsinkiProfiiliUserData $helsinkiProfiiliUserData,
     EventDispatcherInterface $eventDispatcher,

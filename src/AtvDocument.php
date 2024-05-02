@@ -140,14 +140,14 @@ final class AtvDocument implements \JsonSerializable {
   protected ?string $documentLanguage;
 
   /**
-   * Date which after the document and related attachments are permanently deleted
+   * Date after the document and related attachments are permanently deleted.
    *
    * @var string
    */
   protected ?string $deleteAfter;
 
   /**
-   * Date which after the document and related attachments are permanently deleted
+   * Url for content schema.
    *
    * @var string
    */
@@ -821,15 +821,17 @@ final class AtvDocument implements \JsonSerializable {
    * Set the document language.
    *
    * @param string $documentLanguage
-   *   Lnaguage code in ISO-639-1 format and maximum 5 of characters.
+   *   Language code in ISO-639-1 format and maximum 5 of characters.
    */
-  public function setDocumentLanguage(string $documentLanguage) {
+  public function setDocumentLanguage(string $documentLanguage): void {
     $this->documentLanguage = $documentLanguage;
   }
 
   /**
    * Get delete after date.
+   *
    * @return null|string
+   *   Date string if set.
    */
   public function getDeleteAfter(): ?string {
     return $this->deleteAfter;
@@ -838,22 +840,21 @@ final class AtvDocument implements \JsonSerializable {
   /**
    * Set delete after timestamp.
    *
-   *  @param string $deleteAfter
+   * @param string $deleteAfter
    *   Date string which after the document and
    *   related attachments are permanently deleted.
    *
-   *   For example "2022-12-12"
-   *
-   * @return null|string
-   *   Date string if set.
+   *   For example "2022-12-12".
    */
-  public function setDeleteAfter(string $deleteAfter) {
+  public function setDeleteAfter(string $deleteAfter): void {
     $this->deleteAfter = $deleteAfter;
   }
 
   /**
-   * Set content schema url
+   * Set content schema url.
+   *
    * @return null|string
+   *   Url if set.
    */
   public function getContentSchemaUrl(): ?string {
     return $this->contentSchemaUrl;
@@ -862,15 +863,11 @@ final class AtvDocument implements \JsonSerializable {
   /**
    * Set content schema url.
    *
-   *  @param string $contentSchemaUrl
-   *   Link to content schema if available
-   *
-   * @return null|string
-   *   Date string if set.
+   * @param string $contentSchemaUrl
+   *   Link to content schema if available.
    */
-  public function setContentSchemaUrl(string $contentSchemaUrl) {
+  public function setContentSchemaUrl(string $contentSchemaUrl): void {
     $this->contentSchemaUrl = $contentSchemaUrl;
   }
-
 
 }

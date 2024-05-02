@@ -51,7 +51,7 @@ class AtvServiceEventSubscriber implements EventSubscriberInterface {
   /**
    * Audit log the operation.
    *
-   * @param \Drupal\helfi_atv\Event\AtvServiceEOperationEvent $event
+   * @param \Drupal\helfi_atv\Event\AtvServiceOperationEvent $event
    *   An operation event.
    */
   public function onOperation(AtvServiceOperationEvent $event) {
