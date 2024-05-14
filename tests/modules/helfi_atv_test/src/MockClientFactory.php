@@ -7,6 +7,7 @@ use Drupal\Core\Site\Settings;
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
 
 /**
  * Helper class to construct a mock HTTP client with Drupal specific config.
@@ -30,6 +31,13 @@ class MockClientFactory {
   protected $mockHandler;
 
   /**
+   * History.
+   *
+   * @var array
+   */
+  protected $historyContainer;
+
+  /**
    * Constructs a new ClientFactory instance.
    */
   public function __construct() {
@@ -39,6 +47,9 @@ class MockClientFactory {
     // Create handler stack.
     $handlerStack = HandlerStack::create($this->mockHandler);
     $this->stack = $handlerStack;
+    $this->historyContainer = [];
+    $history = Middleware::history($this->historyContainer);
+    $handlerStack->push($history);
   }
 
   /**
@@ -49,6 +60,16 @@ class MockClientFactory {
    */
   public function addResponse($response): void {
     $this->mockHandler->append($response);
+  }
+
+  /**
+   * Get headers from a response.
+   *
+   * @param int $index
+   *   Response index.
+   */
+  public function getHeaders($index = 0): array {
+    return $this->historyContainer[$index]['request']->getHeaders();
   }
 
   /**
