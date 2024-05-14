@@ -8,7 +8,6 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\File\FileSystemInterface;
-use Drupal\Core\Logger\LoggerChannelFactory;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
@@ -466,9 +465,7 @@ class AtvService {
     $responseData = $this->doRequest(
       'GET',
       $this->buildUrl('userdocuments/' . $sub . '/', $params),
-      [
-        'headers' => $this->headers,
-      ],
+      [],
     );
     return $responseData['results'] ?? [];
   }
@@ -1065,8 +1062,7 @@ class AtvService {
         $this->setAuthHeaders(TRUE);
         $options['headers']['X-Api-Key'] = $this->headers['X-Api-Key'];
       }
-      // If we don't have Authorization headers, we need to get them.
-      elseif (empty($options['headers'])) {
+      else {
         // Set headers from configs.
         $this->setAuthHeaders();
 
