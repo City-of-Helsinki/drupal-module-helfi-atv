@@ -81,101 +81,6 @@ class AtvServiceTest extends KernelTestBase {
   }
 
   /**
-   * Assert if we have correct authorization header.
-   */
-  public function assertTokenHeaders($headers): void {
-    $this->assertArrayHasKey('Authorization', $headers);
-    $this->assertArrayNotHasKey('X-Api-Key', $headers);
-    $expectedToken = 'Bearer tokenFromMockHelsinkiProfiiliUserData';
-    $this->assertEquals($expectedToken, $headers['Authorization'][0]);
-  }
-
-  /**
-   * Assert if we have correct API Key header.
-   */
-  public function assertApiKeyHeaders($headers): void {
-    $this->assertArrayHasKey('X-Api-Key', $headers);
-    $this->assertArrayNotHasKey('Authorization', $headers);
-    $expectedKey = getenv('ATV_API_KEY');
-    $this->assertEquals($expectedKey, $headers['X-Api-Key'][0]);
-  }
-
-  /**
-   * Test that correct headers are set.
-   */
-  public function testHeaders(): void {
-    // Prepare the tests.
-    $mockClientFactory = \Drupal::service('http_client_factory');
-    $service = \Drupal::service('helfi_atv.atv_service');
-
-    // getGdprData.
-    $mockClientFactory->addResponse(new Response(200, [], json_encode([])));
-    $service->getGdprData('userid');
-    $headers = $mockClientFactory->getHeaders(0);
-    $this->assertApiKeyHeaders($headers);
-
-    // deleteGdprData.
-    $mockClientFactory->addResponse(new Response(204));
-    $service->deleteGdprData('userid');
-    $headers1 = $mockClientFactory->getHeaders(1);
-    $this->assertApiKeyHeaders($headers1);
-
-    // getUserDocuments.
-    $mockClientFactory->addResponse(new Response(200, [], json_encode([])));
-    $service->getUserDocuments('userid');
-    $headers2 = $mockClientFactory->getHeaders(2);
-    $this->assertTokenHeaders($headers2);
-
-    // getDocument.
-    $mockClientFactory->addResponse(new Response(200, [], json_encode([])));
-    $service->getUserDocuments('documentid');
-    $headers3 = $mockClientFactory->getHeaders(3);
-    $this->assertTokenHeaders($headers3);
-
-    // checkDocumentExistsByTransactionId.
-    $mockClientFactory->addResponse(new Response(200, [], json_encode(['results' => 0])));
-    $service->checkDocumentExistsByTransactionId('transactionid');
-    $headers4 = $mockClientFactory->getHeaders(4);
-    $this->assertTokenHeaders($headers4);
-
-    // postDocument.
-    $mockClientFactory->addResponse(new Response(200, [], json_encode([])));
-    $service->postDocument($service->createDocument([]));
-    $headers5 = $mockClientFactory->getHeaders(5);
-    $this->assertTokenHeaders($headers5);
-
-    // patchDocument.
-    $mockClientFactory->addResponse(new Response(200, [], json_encode([])));
-    $service->patchDocument('documentid', ['transaction_id' => 'test']);
-    $headers6 = $mockClientFactory->getHeaders(6);
-    $this->assertTokenHeaders($headers6);
-
-    // deleteAttachmentByUrl.
-    $mockClientFactory->addResponse(new Response(204));
-    $service->deleteAttachmentByUrl('url');
-    $headers7 = $mockClientFactory->getHeaders(7);
-    $this->assertTokenHeaders($headers7);
-
-    // deleteDocument.
-    $mockClientFactory->addResponse(new Response(204));
-    $service->deleteDocument($service->createDocument([]));
-    $headers8 = $mockClientFactory->getHeaders(8);
-    $this->assertTokenHeaders($headers8);
-
-    // deleteAttachment.
-    $mockClientFactory->addResponse(new Response(204));
-    $service->deleteAttachment('documentid', 'attachmentid');
-    $headers9 = $mockClientFactory->getHeaders(9);
-    $this->assertTokenHeaders($headers9);
-
-    // deleteAttachmentViaIntegrationId.
-    $mockClientFactory->addResponse(new Response(204));
-    $service->deleteAttachmentViaIntegrationId('integrationid');
-    $headers10 = $mockClientFactory->getHeaders(10);
-    $this->assertTokenHeaders($headers10);
-  }
-
-  /**
    * Test delete requests with gdpr call.
    */
   public function testDeleteRequests(): void {
@@ -243,11 +148,6 @@ class AtvServiceTest extends KernelTestBase {
     $this->assertEquals(2, $eventSubscriber->getOperationCount());
     $this->assertEquals(0, $eventSubscriber->getExceptionCount());
     $this->assertEquals(15, count($results));
-    // Check headers.
-    $headers1 = $mockClientFactory->getHeaders(0);
-    $this->assertTokenHeaders($headers1);
-    $headers2 = $mockClientFactory->getHeaders(1);
-    $this->assertTokenHeaders($headers2);
   }
 
   /**

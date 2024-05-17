@@ -63,7 +63,7 @@ class MockClientFactory {
   }
 
   /**
-   * Get headers from a response.
+   * Add new response for mock handler.
    *
    * @param int $index
    *   Response index.

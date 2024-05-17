@@ -465,7 +465,9 @@ class AtvService {
     $responseData = $this->doRequest(
       'GET',
       $this->buildUrl('userdocuments/' . $sub . '/', $params),
-      [],
+      [
+        'headers' => $this->headers,
+      ],
     );
     return $responseData['results'] ?? [];
   }
@@ -902,7 +904,6 @@ class AtvService {
     // Get file metadata.
     $fileUri = $file->get('uri')->value;
     $filePath = $this->fileSystem->realpath($fileUri);
-
     // Get file data.
     $body = Utils::tryFopen($filePath, 'r');
 
