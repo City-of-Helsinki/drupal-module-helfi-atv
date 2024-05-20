@@ -1063,7 +1063,8 @@ class AtvService {
         $this->setAuthHeaders(TRUE);
         $options['headers']['X-Api-Key'] = $this->headers['X-Api-Key'];
       }
-      else {
+      // If we don't have Authorization headers, we need to get them.
+      elseif (empty($options['headers'])) {
         // Set headers from configs.
         $this->setAuthHeaders();
 
