@@ -30,6 +30,8 @@ class AtvServiceTest extends KernelTestBase {
     'helfi_atv',
     'helfi_atv_test',
     'helfi_helsinki_profiili',
+    // Helsinki profiili requires audit log unnecessarily.
+    'helfi_audit_log',
   ];
 
   /**
@@ -230,7 +232,7 @@ class AtvServiceTest extends KernelTestBase {
   /**
    * Test setting auth headers via other method calls.
    */
-  public function testSetAuthHeaders() {
+  public function testSetAuthHeadersErrors() {
     $mockClientFactory = \Drupal::service('http_client_factory');
     // Get the service for testing.
     $service = \Drupal::service('helfi_atv.atv_service');
