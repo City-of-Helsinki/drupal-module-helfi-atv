@@ -8,7 +8,6 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\File\FileSystemInterface;
-use Drupal\Core\Logger\LoggerChannelFactory;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
@@ -905,7 +904,6 @@ class AtvService {
     // Get file metadata.
     $fileUri = $file->get('uri')->value;
     $filePath = $this->fileSystem->realpath($fileUri);
-
     // Get file data.
     $body = Utils::tryFopen($filePath, 'r');
 
