@@ -625,6 +625,38 @@ class AtvService {
   }
 
   /**
+   * Own implemenation of native array_walk_recursive.
+   */
+  public static function arrayWalkRecursive(&$items) {
+
+    foreach ($items as $key => $value) {
+      if (is_array($items[$key]) && empty($value)) {
+        $items[$key] = new \stdClass();
+      }
+      elseif (is_array($items[$key])) {
+        // Go level down if the current $value happens to be an array.
+        $items[$key] = self::arrayWalkRecursive($value);
+      }
+      else {
+        // Apply callback function to modify leaf values.
+        $items[$key] = self::xssFilter($value);
+      }
+    }
+    // Return an updated array.
+    return $items;
+  }
+
+  /**
+   * Helper function for xss filtering.
+   */
+  protected static function xssFilter($item) {
+    if (is_string($item)) {
+      $item = Xss::filter($item);
+    }
+    return $item;
+  }
+
+  /**
    * Parse array data to form data.
    *
    * @param array $document
@@ -637,14 +669,7 @@ class AtvService {
     $retval = [];
     foreach ($document as $key => $value) {
       if (is_array($value)) {
-        array_walk_recursive(
-          $value,
-          function (&$item) {
-            if (is_string($item)) {
-              $item = Xss::filter($item);
-            }
-          }
-        );
+        self::arrayWalkRecursive($value);
         $contents = Json::encode($value);
       }
       else {
