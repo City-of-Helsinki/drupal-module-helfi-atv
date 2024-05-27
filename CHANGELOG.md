@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.26
+- f0c28a8 Update version number in composer.json
+- c12ee85 test: AU-1929 Header tests (#31)
+- 256da46 Release 0.9.24
+- f370109 Version bump
+- 085c44f feat: AU-1984: Tunnistamo to version 3 (#30)
+- 202ff75 update PR-template, add documentation and translations section (#29)
+- 95c8d13 Pump up version numbero
+- 89c296a AU-2123: Update version constrains for D10, run PHPCS fixes. (#28)
+- d13b2cf fix:  AU-2131: Drupal 10 compatibility (#27)
+
 ## 0.9.19
 - e28f5d1: fix: AU-2214: Set X-Api-Key headers in doRequest if using the api key flag
 ## 0.9.18

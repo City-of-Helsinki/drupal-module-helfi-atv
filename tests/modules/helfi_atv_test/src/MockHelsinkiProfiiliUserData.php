@@ -21,7 +21,7 @@ class MockHelsinkiProfiiliUserData extends HelsinkiProfiiliUserData {
    */
   public function getApiAccessTokens(): array {
     return [
-      'tokenName' => 'token',
+      'tokenName' => 'tokenFromMockHelsinkiProfiiliUserData',
     ];
   }
 
