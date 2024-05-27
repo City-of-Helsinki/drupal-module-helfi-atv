@@ -1056,7 +1056,7 @@ class AtvService {
     string $url,
     array $options,
     bool $apiKeyAuth = FALSE,
-    ): array|AtvDocument|bool|FileInterface {
+  ): array|AtvDocument|bool|FileInterface {
     try {
       if ($apiKeyAuth) {
         // Set headers from configs.
