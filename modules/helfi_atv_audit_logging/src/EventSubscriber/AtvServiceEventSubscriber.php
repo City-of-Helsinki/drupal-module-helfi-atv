@@ -15,9 +15,7 @@ class AtvServiceEventSubscriber implements EventSubscriberInterface {
   /**
    * {@inheritdoc}
    */
-  public function __construct(
-    private AuditLogService $auditLogService
-  ) {}
+  public function __construct(private AuditLogService $auditLogService) {}
 
   /**
    * {@inheritdoc}
