@@ -117,6 +117,20 @@ class AtvServiceHeaderTest extends KernelTestBase {
   /**
    * Test that correct headers are set.
    */
+  public function testGetDocumentHeaders(): void {
+    // Prepare the test.
+    $mockClientFactory = \Drupal::service('http_client_factory');
+    $service = \Drupal::service('helfi_atv.atv_service');
+    $document = $service->createDocument([]);
+    $mockClientFactory->addResponse(new Response(200, [], json_encode(['results' => [$document]])));
+    $service->getDocument('documentid');
+    $headers = $mockClientFactory->getHeaders();
+    $this->assertTokenHeaders($headers);
+  }
+
+  /**
+   * Test that correct headers are set.
+   */
   public function testCheckDocumentExistsByTransactionIdHeaders(): void {
     // Prepare the test.
     $mockClientFactory = \Drupal::service('http_client_factory');
@@ -134,7 +148,17 @@ class AtvServiceHeaderTest extends KernelTestBase {
     // Prepare the test.
     $mockClientFactory = \Drupal::service('http_client_factory');
     $service = \Drupal::service('helfi_atv.atv_service');
-    $mockClientFactory->addResponse(new Response(200, [], json_encode([])));
+    $data = [
+      'id' => 'doc-id',
+      'content' => [
+        'type' => 'test',
+        'emptyArray' => [],
+        'arrayKey' [
+          'arrayValue' => 'exists',
+        ],
+      ],
+    ];
+    $mockClientFactory->addResponse(new Response(201, [], json_encode($data)));
     $service->postDocument($service->createDocument([]));
     $headers = $mockClientFactory->getHeaders();
     $this->assertTokenHeaders($headers);
