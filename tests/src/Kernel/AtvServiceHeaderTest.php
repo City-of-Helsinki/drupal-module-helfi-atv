@@ -109,7 +109,7 @@ class AtvServiceHeaderTest extends KernelTestBase {
     $mockClientFactory = \Drupal::service('http_client_factory');
     $service = \Drupal::service('helfi_atv.atv_service');
     $mockClientFactory->addResponse(new Response(200, [], json_encode([])));
-    $service->getUserDocuments('userid');
+    $service->getUserDocuments('userid', 'transactionid');
     $headers = $mockClientFactory->getHeaders();
     $this->assertTokenHeaders($headers);
   }
@@ -153,7 +153,7 @@ class AtvServiceHeaderTest extends KernelTestBase {
       'content' => [
         'type' => 'test',
         'emptyArray' => [],
-        'arrayKey' [
+        'arrayKey' => [
           'arrayValue' => 'exists',
         ],
       ],
@@ -240,6 +240,19 @@ class AtvServiceHeaderTest extends KernelTestBase {
     $fileName = __DIR__ . '/uploadAttachment.txt';
     $file = File::create(['uri' => $fileName]);
     $service->uploadAttachment('documentid', $fileName, $file);
+    $headers = $mockClientFactory->getHeaders();
+    $this->assertTokenHeaders($headers);
+  }
+
+  /**
+   * Test that correct headers are set.
+   */
+  public function testGetAttachmentHeaders(): void {
+    // Prepare the test.
+    $mockClientFactory = \Drupal::service('http_client_factory');
+    $service = \Drupal::service('helfi_atv.atv_service');
+    $mockClientFactory->addResponse(new Response(200, ['content-disposition' => 'attachment;file=test.txt'], json_encode([])));
+    $service->getAttachment('file-url');
     $headers = $mockClientFactory->getHeaders();
     $this->assertTokenHeaders($headers);
   }
