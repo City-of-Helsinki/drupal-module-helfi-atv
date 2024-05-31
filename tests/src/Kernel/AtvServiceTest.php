@@ -151,9 +151,28 @@ class AtvServiceTest extends KernelTestBase {
   }
 
   /**
-   * Test cache.
+   * Test cache in getDocument method.
    */
-  public function testCache() {
+  public function testGetDocumentCache() {
+    // Prepare the test.
+    $mockClientFactory = \Drupal::service('http_client_factory');
+    $service = \Drupal::service('helfi_atv.atv_service');
+    $responseDocument1 = $service->createDocument(['id' => 'id-doc1']);
+    $mockClientFactory->addResponse(new Response(200, [], json_encode(['results' => [$responseDocument1]])));
+    $responseDocument2 = $service->createDocument(['id' => 'id-doc2']);
+    $mockClientFactory->addResponse(new Response(200, [], json_encode(['results' => [$responseDocument2]])));
+    $document = $service->getDocument('documentid');
+    $this->assertEquals('id-doc1', $document->getId());
+    $cachedDocument = $service->getDocument('documentid');
+    $this->assertEquals('id-doc1', $cachedDocument->getId());
+    $uncachedDocument = $service->getDocument('documentid', TRUE);
+    $this->assertEquals('id-doc2', $uncachedDocument->getId());
+  }
+
+  /**
+   * Test cache in search method.
+   */
+  public function testSearchCache() {
     $eventSubscriber = \Drupal::service('helfi_atv_test.event_subscriber');
     $eventSubscriber->resetCounters();
     $mockClientFactory = \Drupal::service('http_client_factory');
