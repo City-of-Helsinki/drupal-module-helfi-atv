@@ -202,7 +202,7 @@ class AtvServiceTest extends KernelTestBase {
     $mockClientFactory->addResponse(new Response(200, [], json_encode($mockResult2)));
     $service = \Drupal::service('helfi_atv.atv_service');
     $searchParams = [
-      'lookfor' => 'appenv:test,applicant_type:registered_community,',
+      'lookfor' => ['appenv' => 'test', 'applicant_type' => 'registered_community'],
       'business_id' => '1234567-1',
       'service_name' => 'AvustushakemusIntegraatio',
     ];
@@ -211,6 +211,9 @@ class AtvServiceTest extends KernelTestBase {
     // Check that module has sent one opration event and no exception ones.
     $this->assertEquals(1, $eventSubscriber->getOperationCount());
     $this->assertEquals(0, $eventSubscriber->getExceptionCount());
+    $url1 = $mockClientFactory->getRequestUrl(0);
+    $this->assertStringContainsString('appenv:test', $url1);
+    $this->assertStringContainsString('applicant_type:registered_community', $url1);
     // We should get results from cache.
     // Order of parameters should not matter.
     $searchParams2 = [
@@ -329,7 +332,7 @@ class AtvServiceTest extends KernelTestBase {
     $results = $service->searchDocuments(
       [
         'transaction_id' => $applicationNumber,
-        'lookfor' => 'appenv:TEST',
+        'lookfor' => ['appenv' => 'TEST'],
       ]
     );
     // Another operation.

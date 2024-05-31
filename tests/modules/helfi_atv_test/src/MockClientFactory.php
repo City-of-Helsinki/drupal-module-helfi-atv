@@ -63,13 +63,23 @@ class MockClientFactory {
   }
 
   /**
-   * Add new response for mock handler.
+   * Get headers from a request.
+   *
+   * @param int $index
+   *   Request index.
+   */
+  public function getHeaders($index = 0): array {
+    return $this->historyContainer[$index]['request']->getHeaders();
+  }
+
+  /**
+   * Get request URL.
    *
    * @param int $index
    *   Response index.
    */
-  public function getHeaders($index = 0): array {
-    return $this->historyContainer[$index]['request']->getHeaders();
+  public function getRequestUrl($index = 0): string {
+    return (string) $this->historyContainer[$index]['request']->getUri();
   }
 
   /**
