@@ -554,7 +554,8 @@ class AtvService {
    */
   public function getDocument(string $id, bool $refetch = FALSE): AtvDocument {
     if (($this->useCache && $refetch === FALSE) && $this->isCached($id)) {
-      return $this->getFromCache($id);
+      $cachedDocument = $this->getFromCache($id);
+      return reset($cachedDocument);
     }
 
     $response = $this->doRequest(
@@ -564,12 +565,14 @@ class AtvService {
         'headers' => $this->headers,
       ]
     );
-
-    if ($this->useCache) {
-      $this->setToCache($id, $response['results']);
+    $document = reset($response['results']);
+    if (!$document) {
+      throw new AtvDocumentNotFoundException();
     }
-
-    return reset($response['results']);
+    if ($this->useCache) {
+      $this->setToCache($id, [$document]);
+    }
+    return $document;
 
   }
 
@@ -598,7 +601,6 @@ class AtvService {
         ],
       ]
     );
-
     if (isset($response['results'])) {
       return count($response['results']) === 0;
     }
