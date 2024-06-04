@@ -523,11 +523,11 @@ final class AtvDocument implements \JsonSerializable {
   /**
    * Get user id.
    *
-   * @return string
+   * @return string|null
    *   Document user id.
    */
-  public function getUserId(): string {
-    return $this->userId;
+  public function getUserId(): string|null {
+    return $this->userId ?? NULL;
   }
 
   /**
