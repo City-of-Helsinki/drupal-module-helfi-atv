@@ -32,6 +32,13 @@ class HelfiAtvTestServiceProvider extends ServiceProviderBase {
     else {
       throw \Exception('Error in altering services');
     }
+    if ($container->hasDefinition('file.repository')) {
+      $definition = $container->getDefinition('file.repository');
+      $definition->setClass('Drupal\helfi_atv_test\MockFileRepository');
+    }
+    else {
+      throw \Exception('Error in altering services');
+    }
   }
 
 }

@@ -151,9 +151,28 @@ class AtvServiceTest extends KernelTestBase {
   }
 
   /**
-   * Test cache.
+   * Test cache in getDocument method.
    */
-  public function testCache() {
+  public function testGetDocumentCache() {
+    // Prepare the test.
+    $mockClientFactory = \Drupal::service('http_client_factory');
+    $service = \Drupal::service('helfi_atv.atv_service');
+    $responseDocument1 = $service->createDocument(['id' => 'id-doc1']);
+    $mockClientFactory->addResponse(new Response(200, [], json_encode(['results' => [$responseDocument1]])));
+    $responseDocument2 = $service->createDocument(['id' => 'id-doc2']);
+    $mockClientFactory->addResponse(new Response(200, [], json_encode(['results' => [$responseDocument2]])));
+    $document = $service->getDocument('documentid');
+    $this->assertEquals('id-doc1', $document->getId());
+    $cachedDocument = $service->getDocument('documentid');
+    $this->assertEquals('id-doc1', $cachedDocument->getId());
+    $uncachedDocument = $service->getDocument('documentid', TRUE);
+    $this->assertEquals('id-doc2', $uncachedDocument->getId());
+  }
+
+  /**
+   * Test cache in search method.
+   */
+  public function testSearchCache() {
     $eventSubscriber = \Drupal::service('helfi_atv_test.event_subscriber');
     $eventSubscriber->resetCounters();
     $mockClientFactory = \Drupal::service('http_client_factory');
@@ -183,7 +202,7 @@ class AtvServiceTest extends KernelTestBase {
     $mockClientFactory->addResponse(new Response(200, [], json_encode($mockResult2)));
     $service = \Drupal::service('helfi_atv.atv_service');
     $searchParams = [
-      'lookfor' => 'appenv:test,applicant_type:registered_community,',
+      'lookfor' => ['appenv' => 'test', 'applicant_type' => 'registered_community'],
       'business_id' => '1234567-1',
       'service_name' => 'AvustushakemusIntegraatio',
     ];
@@ -192,6 +211,9 @@ class AtvServiceTest extends KernelTestBase {
     // Check that module has sent one opration event and no exception ones.
     $this->assertEquals(1, $eventSubscriber->getOperationCount());
     $this->assertEquals(0, $eventSubscriber->getExceptionCount());
+    $url1 = $mockClientFactory->getRequestUrl(0);
+    $this->assertStringContainsString('appenv:test', $url1);
+    $this->assertStringContainsString('applicant_type:registered_community', $url1);
     // We should get results from cache.
     // Order of parameters should not matter.
     $searchParams2 = [
@@ -310,7 +332,7 @@ class AtvServiceTest extends KernelTestBase {
     $results = $service->searchDocuments(
       [
         'transaction_id' => $applicationNumber,
-        'lookfor' => 'appenv:TEST',
+        'lookfor' => ['appenv' => 'TEST'],
       ]
     );
     // Another operation.

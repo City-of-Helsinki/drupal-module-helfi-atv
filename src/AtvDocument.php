@@ -168,13 +168,6 @@ final class AtvDocument implements \JsonSerializable {
   protected array $attachments;
 
   /**
-   * Url to document.
-   *
-   * @var string
-   */
-  protected string $href;
-
-  /**
    * Type strings with translations.
    *
    * @var array
@@ -362,11 +355,23 @@ final class AtvDocument implements \JsonSerializable {
     if (isset($this->updatedAt)) {
       $json_array['updated_at'] = $this->getUpdatedAt();
     }
+    if (isset($this->lockedAfter)) {
+      $json_array['locked_after'] = $this->getLockedAfter();
+    }
     if (isset($this->status)) {
       $json_array['status'] = $this->getStatus();
     }
     if (isset($this->statusArray)) {
-      $json_array['statusArray'] = $this->getStatusArray();
+      $json_array['status_array'] = $this->getStatusArray();
+    }
+    if (isset($this->statusHistory)) {
+      $json_array['status_histories'] = $this->getStatusHistory();
+    }
+    if (isset($this->service)) {
+      $json_array['service'] = $this->getService();
+    }
+    if (isset($this->serviceDetails)) {
+      $json_array['service_details'] = $this->getServiceDetails();
     }
     if (isset($this->type)) {
       $json_array['type'] = $this->getType();
@@ -675,16 +680,6 @@ final class AtvDocument implements \JsonSerializable {
       }
     }
     return FALSE;
-  }
-
-  /**
-   * Get document link.
-   *
-   * @return string
-   *   Document url.
-   */
-  public function getHref(): string {
-    return $this->href;
   }
 
   /**
