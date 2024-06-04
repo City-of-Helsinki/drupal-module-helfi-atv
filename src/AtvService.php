@@ -252,13 +252,15 @@ class AtvService {
       return;
     }
     // Else if token is given, use it instead of getting one from HP.
+    // Feature not used. This could be used if ATV moves to token based auth.
+    // @codeCoverageIgnoreStart
     elseif ($token) {
       $this->headers = [
         'Authorization' => 'Bearer ' . $token,
       ];
       return;
     }
-
+    // @codeCoverageIgnoreEnd
     $useTokenAuth = getenv('ATV_USE_TOKEN_AUTH');
 
     // Here we figure out if user has HP user or ADMIN, and if user has admin
@@ -554,7 +556,8 @@ class AtvService {
    */
   public function getDocument(string $id, bool $refetch = FALSE): AtvDocument {
     if (($this->useCache && $refetch === FALSE) && $this->isCached($id)) {
-      return $this->getFromCache($id);
+      $cachedDocument = $this->getFromCache($id);
+      return reset($cachedDocument);
     }
 
     $response = $this->doRequest(
@@ -564,12 +567,14 @@ class AtvService {
         'headers' => $this->headers,
       ]
     );
-
-    if ($this->useCache) {
-      $this->setToCache($id, $response['results']);
+    $document = reset($response['results']);
+    if (!$document) {
+      throw new AtvDocumentNotFoundException();
     }
-
-    return reset($response['results']);
+    if ($this->useCache) {
+      $this->setToCache($id, [$document]);
+    }
+    return $document;
 
   }
 
@@ -598,7 +603,6 @@ class AtvService {
         ],
       ]
     );
-
     if (isset($response['results'])) {
       return count($response['results']) === 0;
     }
@@ -609,19 +613,53 @@ class AtvService {
   }
 
   /**
-   * Parse malformed json.
+   * Parse malformed json. Probably unused.
    *
    * @param string $contentString
    *   JSON to be checked.
    *
    * @return mixed
    *   Decoded JSON array.
+   *
+   * @codeCoverageIgnore
    */
   public function parseContent(string $contentString): mixed {
     $replaced = str_replace("'", "\"", $contentString);
     $replaced = str_replace("False", "false", $replaced);
 
     return Json::decode($replaced);
+  }
+
+  /**
+   * Own implemenation of native array_walk_recursive.
+   */
+  public static function arrayWalkRecursive(&$items) {
+
+    foreach ($items as $key => $value) {
+      if (is_array($items[$key]) && empty($value)) {
+        $items[$key] = new \stdClass();
+      }
+      elseif (is_array($items[$key])) {
+        // Go level down if the current $value happens to be an array.
+        $items[$key] = self::arrayWalkRecursive($value);
+      }
+      else {
+        // Apply callback function to modify leaf values.
+        $items[$key] = self::xssFilter($value);
+      }
+    }
+    // Return an updated array.
+    return $items;
+  }
+
+  /**
+   * Helper function for xss filtering.
+   */
+  protected static function xssFilter($item) {
+    if (is_string($item)) {
+      $item = Xss::filter($item);
+    }
+    return $item;
   }
 
   /**
@@ -637,14 +675,7 @@ class AtvService {
     $retval = [];
     foreach ($document as $key => $value) {
       if (is_array($value)) {
-        array_walk_recursive(
-          $value,
-          function (&$item) {
-            if (is_string($item)) {
-              $item = Xss::filter($item);
-            }
-          }
-        );
+        self::arrayWalkRecursive($value);
         $contents = Json::encode($value);
       }
       else {
@@ -955,7 +986,9 @@ class AtvService {
   protected function request(string $method, string $url, array $options, array $prevRes = []): array {
     $requestStartTime = 0;
     if ($this->isDebug()) {
+      // @codeCoverageIgnoreStart
       $requestStartTime = floor(microtime(TRUE) * 1000);
+      // @codeCoverageIgnoreEnd
     }
     $resp = $this->httpClient->request(
       $method,
@@ -964,12 +997,14 @@ class AtvService {
     );
     $this->dispatchOperationEvent($method, $url);
     if ($this->isDebug()) {
+      // @codeCoverageIgnoreStart
       $requestEndTime = floor(microtime(TRUE) * 1000);
       $this->logger->debug('ATV @method query @url took @ms ms', [
         '@method' => $method,
         '@url' => $url,
         '@ms' => $requestEndTime - $requestStartTime,
       ]);
+      // @codeCoverageIgnoreEnd
     }
 
     // Handle file download situation.
@@ -1055,7 +1090,7 @@ class AtvService {
     string $method,
     string $url,
     array $options,
-    bool $apiKeyAuth = FALSE
+    bool $apiKeyAuth = FALSE,
   ): array|AtvDocument|bool|FileInterface {
     try {
       if ($apiKeyAuth) {
@@ -1134,6 +1169,9 @@ class AtvService {
         $body = $response->getBody();
         $bodyContents = $body->getContents();
         if (is_string($bodyContents) && $bodyContents !== "") {
+          // Request method handles body. This is probably useless block.
+          // Leaving it here to avoid disasters if it used in some case.
+          // @codeCoverageIgnoreStart
           $bodyContents = Json::decode($bodyContents);
           if (isset($bodyContents['results']) && is_array($bodyContents['results'])) {
             $resultDocuments = [];
@@ -1142,6 +1180,7 @@ class AtvService {
             }
             $bodyContents['results'] = $resultDocuments;
           }
+          // @codeCoverageIgnoreEnd
         }
         else {
           return $responseContent;
@@ -1325,9 +1364,11 @@ class AtvService {
    *   Replacements.
    */
   public function debugPrint(string $message, array $replacements = []): void {
+    // @codeCoverageIgnoreStart
     if ($this->isDebug()) {
       $this->logger->debug($message, $replacements);
     }
+    // @codeCoverageIgnoreEnd
   }
 
   /**
