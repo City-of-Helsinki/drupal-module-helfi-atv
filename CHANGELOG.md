@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.27
+- abf9e30 fix: AU-1934: Modify json output (#34)
+- fa47e5e test: AU-1407 ATVDocument tests (#36)
+- af6b653 PHPCS
+- 366586c PHPCS
+- 096f468 PHPCS
+- 8e9f4e9 PHPCS
+- e2f6cfa PHPCS
+- 0e9d9a8 Fix testing env setup
+
 ## 0.9.26
 - f0c28a8 Update version number in composer.json
 - c12ee85 test: AU-1929 Header tests (#31)
