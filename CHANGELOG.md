@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.28
+- 8767894 fix: AU-488: Remove service from document (#38)
+
 ## 0.9.27
 - abf9e30 fix: AU-1934: Modify json output (#34)
 - fa47e5e test: AU-1407 ATVDocument tests (#36)
