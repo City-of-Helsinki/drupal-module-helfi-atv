@@ -20,9 +20,6 @@ class AtvDocumentUnitTest extends UnitTestCase {
     $dataArray = [
       'id' => 'test-id',
       'type' => 'type',
-      'service' => [
-        'name' => 'serviceName',
-      ],
       'status' => [
         'value' => 'DRAFT',
       ],
@@ -50,12 +47,6 @@ class AtvDocumentUnitTest extends UnitTestCase {
     $document = ATVDocument::create($dataArray);
     $statusHistory = $document->getStatusHistory();
     $this->assertEquals('DRAFT', $statusHistory[0]);
-    $service = $document->getService();
-    $this->assertEquals('serviceName', $service);
-    $serviceDetails = $document->getServiceDetails();
-    $this->assertCount(1, $serviceDetails);
-    $this->assertArrayHasKey('name', $serviceDetails);
-    $this->assertEquals('serviceName', $serviceDetails['name']);
     $id = $document->getId();
     $this->assertEquals('test-id', $id);
     $isNew = $document->isNew();
@@ -122,16 +113,12 @@ class AtvDocumentUnitTest extends UnitTestCase {
     // Modify data array to match ATVDocument serialization.
     $dataArray['status_array'] = $dataArray['status'];
     $dataArray['status'] = 'DRAFT';
-    $dataArray['service_details'] = $dataArray['service'];
-    $dataArray['service'] = 'serviceName';
     $dataArray['metadata'] = ['name' => 'Name', 'value' => 'Value'];
     $dataArray['content'] = [
       'data' => 'content',
     ];
     ksort($dataArray);
     ksort($serializedDocument);
-    // var_dump($dataArray);
-    // var_dump($serializedDocument);
     $this->assertEqualsCanonicalizing(array_keys($dataArray), array_keys($serializedDocument));
     $this->assertEqualsCanonicalizing($dataArray, $serializedDocument);
 
@@ -200,9 +187,6 @@ class AtvDocumentUnitTest extends UnitTestCase {
     $document->setContentSchemaUrl('newSchemaURL');
     $schemaUrl = $document->getContentSchemaUrl();
     $this->assertEquals('newSchemaURL', $schemaUrl);
-    $document->setService('newServiceName');
-    $service = $document->getService();
-    $this->assertEquals('newServiceName', $service);
 
     $document->setDeleteAfter('2085-01-01');
     $deleteAfter = $document->getDeleteAfter();
