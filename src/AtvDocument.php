@@ -367,12 +367,6 @@ final class AtvDocument implements \JsonSerializable {
     if (isset($this->statusHistory)) {
       $json_array['status_histories'] = $this->getStatusHistory();
     }
-    if (isset($this->service)) {
-      $json_array['service'] = $this->getService();
-    }
-    if (isset($this->serviceDetails)) {
-      $json_array['service_details'] = $this->getServiceDetails();
-    }
     if (isset($this->type)) {
       $json_array['type'] = $this->getType();
     }
