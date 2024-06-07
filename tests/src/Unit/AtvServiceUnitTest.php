@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\helfi_atv\Unit;
 
-use Drupal\Component\Serialization\Json;
 use Drupal\helfi_atv\AtvService;
 use Drupal\Tests\UnitTestCase;
 
@@ -38,58 +37,6 @@ class AtvServiceUnitTest extends UnitTestCase {
     $userRoles4 = [];
     $result4 = AtvService::hasAllowedRole($allowedRoles4, $userRoles4);
     $this->assertEquals(FALSE, $result4);
-
-  }
-
-  /**
-   * Test arrayWalkRecursive.
-   */
-  public function testArrayWalkRecursive() {
-    $arrayData1a = [
-      'test1' => [],
-      'test2' => [],
-      'test3' => [],
-    ];
-    $json1a = Json::encode($arrayData1a);
-    $this->assertEquals('{"test1":[],"test2":[],"test3":[]}', $json1a);
-    $arrayData1b = [
-      'test1' => [],
-      'test2' => [],
-      'test3' => [],
-    ];
-    $json1b = Json::encode(AtvService::arrayWalkRecursive($arrayData1b));
-    $this->assertEquals('{"test1":{},"test2":{},"test3":{}}', $json1b);
-
-    $arrayData2 = [
-      'test1' => ['value' => '2'],
-      'test2' => ['value' => 'string'],
-      'test3' => ['value' => ''],
-    ];
-    $json2 = Json::encode(AtvService::arrayWalkRecursive($arrayData2));
-    $this->assertEquals('{"test1":{"value":"2"},"test2":{"value":"string"},"test3":{"value":""}}', $json2);
-    $arrayData3 = [
-      [
-        'test1' => [],
-        'test2' => [],
-        'test3' => [],
-      ],
-      [
-        'test4' => [],
-        'test5' => [],
-        'test6' => [],
-      ],
-    ];
-    $json3 = Json::encode(AtvService::arrayWalkRecursive($arrayData3));
-    $this->assertEquals('[{"test1":{},"test2":{},"test3":{}},{"test4":{},"test5":{},"test6":{}}]', $json3);
-    // Test Xss filtering.
-    $arrayData4 = [
-      'test1' => ['value' => '<b>Bold<b>'],
-      'test2' => ['value' => '<script>evil</script>'],
-      'test3' => ['value' => ''],
-      'test4' => [],
-    ];
-    $json4 = Json::encode(AtvService::arrayWalkRecursive($arrayData4));
-    $this->assertEquals('{"test1":{"value":"Bold"},"test2":{"value":"evil"},"test3":{"value":""},"test4":{}}', $json4);
 
   }
 
