@@ -713,13 +713,14 @@ class AtvService {
    */
   public function patchDocument(string $id, array $dataArray): bool|AtvDocument|null {
     $patchUrl = 'documents/' . $id;
-
-    // ATV does not allow user_id in PATCHed documents.
-    if (isset($dataArray['user_id'])) {
-      unset($dataArray['user_id']);
+    $readOnlyFields = ['id', 'created_at', 'updated_at', 'service', 'status_histories', 'user_id', 'attachments'];
+    foreach ($readOnlyFields as $fieldName) {
+      if (isset($dataArray[$fieldName])) {
+        unset($dataArray[$fieldName]);
+      }
     }
-    $formData = $this->arrayToFormData($dataArray);
 
+    $formData = $this->arrayToFormData($dataArray);
     $opts = [
       'headers' => $this->headers,
       // Form data.
