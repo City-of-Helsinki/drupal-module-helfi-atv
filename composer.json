@@ -12,6 +12,7 @@
     },
     "require": {
         "drupal/helfi_helsinki_profiili": "*",
-        "drupal/helfi_tunnistamo": "^3.0"
+        "drupal/helfi_tunnistamo": "^3.0",
+        "league/openapi-psr7-validator": "^0.22.0"
     }
 }
