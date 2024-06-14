@@ -7,23 +7,21 @@ use GuzzleHttp\Psr7\Response;
 use League\OpenAPIValidation\PSR7\RequestValidator;
 use League\OpenAPIValidation\PSR7\ValidatorBuilder;
 
-
 /**
  * Tests AtvService class.
  *
  * @covers \Drupal\helfi_atv\AtvService
  * @group helfi_atv
  */
-
 class RequestTest extends KernelTestBase {
 
 
-/**
+  /**
    * Request validator.
    *
-   * @var RequestValidator
+   * @var \League\OpenAPIValidation\PSR7\RequestValidator
    */
-  protected RequestValidator $validator; 
+  protected RequestValidator $validator;
   /**
    * The modules to load to run the test.
    *
@@ -103,10 +101,11 @@ class RequestTest extends KernelTestBase {
     $service->postDocument($service->createDocument($data));
     $request = $mockClientFactory->getRequest();
     try {
-        $match = $this->validator->validate($request);
-    } catch (\Exception $e) {
-        echo $e->getVerboseMessage();
-        return;
+      $match = $this->validator->validate($request);
+    }
+    catch (\Exception $e) {
+      $this->fail($e->getVerboseMessage());
+      return;
     }
     $this->assertEquals('post', $match->method());
     $this->assertEquals('/v1/documents/', $match->path());
@@ -149,12 +148,13 @@ class RequestTest extends KernelTestBase {
     $service->patchDocument('a67dec08-cc7c-11ec-a4fb-00155dcd8647', $data);
     $request = $mockClientFactory->getRequest();
     try {
-        $match = $this->validator->validate($request);
-    } catch (\Exception $e) {
-        echo $e->getVerboseMessage();
-        return;
+      $match = $this->validator->validate($request);
     }
-    
+    catch (\Exception $e) {
+      $this->fail($e->getVerboseMessage());
+      return;
+    }
+
     $this->assertEquals('patch', $match->method());
     $this->assertEquals('/v1/documents/{id}/', $match->path());
   }
