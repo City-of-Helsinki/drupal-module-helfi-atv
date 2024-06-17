@@ -1,0 +1,2314 @@
+openapi: 3.0.3
+info:
+  title: ' Asiointitietovaranto '
+  version: 0.1.0
+  description: Asiointitietovaranto REST API
+servers:
+  - url: 127.0.0.1
+    description: Used for local testing.
+paths:
+  /v1/documents/:
+    get:
+      operationId: documents_list
+      description: |-
+        This endpoint can be used to fetch a list of documents. The list can be filtered, sorted and paged using the appropriate query parameters.
+
+        The results will contain only those documents which are allowed for the current user.
+
+        * Admin users are allowed to fetch all documents which were stored using the service they are using and whose admins they are.
+        * Authenticated users are allowed to fetch documents which are owned by them and which were stored using the service they are using.
+      summary: Search for documents
+      parameters:
+      - in: query
+        name: business_id
+        schema:
+          type: string
+        description: Search for documents which are owned by the given business ID.
+          If this is given, the calling user must either be an admin
+      - in: query
+        name: created_after
+        schema:
+          type: string
+          format: date
+        description: Created after
+      - in: query
+        name: created_before
+        schema:
+          type: string
+          format: date
+        description: Created before
+      - in: query
+        name: lookfor
+        schema:
+          type: string
+        description: Search for documents with metadata matching key:value pairs separated
+          by comma. ( key:value, key:value ). Lookup method for value is 'iexact',
+          key must be exact and is case sensitive.
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: service_name
+        schema:
+          type: string
+        description: Service's name
+      - name: sort
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+        description: Search for documents with the given status
+      - in: query
+        name: transaction_id
+        schema:
+          type: string
+        description: Search for documents with the given transaction id
+      - in: query
+        name: type
+        schema:
+          type: string
+        description: Search for documents with the given type
+      - in: query
+        name: updated_after
+        schema:
+          type: string
+          format: date
+        description: Updated after
+      - in: query
+        name: updated_before
+        schema:
+          type: string
+          format: date
+        description: Updated before
+      - in: query
+        name: user_id
+        schema:
+          type: string
+          format: uuid
+        description: Search for documents which are owned by the given user ID. If
+          this is given, the calling user must be an admin of the service
+      tags:
+      - documents
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedDocumentList'
+              examples:
+                DocumentExample:
+                  value:
+                    count: 123
+                    next: http://api.example.org/accounts/?page=4
+                    previous: http://api.example.org/accounts/?page=2
+                    results:
+                    - id: f6fe8acc-3b91-41b3-a176-9d2feab2d2bb
+                      created_at: '2022-03-07T16:08:39.580394+02:00'
+                      updated_at: '2022-03-07T17:59:39.580394+02:00'
+                      status:
+                        value: PROCESSING
+                        status_display_values:
+                          fi: Käsittelyssä
+                        timestamp: '2022-06-21T13:13:54.247974+03:00'
+                        activities:
+                        - title:
+                            fi: Otsikko
+                          message:
+                            fi: Viestin teksti
+                          activity_links:
+                            en:
+                              url: asdf.uk
+                              display_text: continue in service asdf
+                            fi:
+                              url: asdf.fi
+                              display_text: tästä palveluun asdf
+                            sv:
+                              url: asdf.sv
+                              display_text: samma på svenska
+                          activity_timestamp: '2023-05-22T15:29:49.384845+03:00'
+                          show_to_user: true
+                      status_histories:
+                      - value: PROCESSING
+                        status_display_values:
+                          fi: Käsittelyssä
+                        timestamp: '2022-06-21T13:13:54.247974+03:00'
+                        activities:
+                        - title:
+                            fi: Otsikko
+                          message:
+                            fi: Viestin teksti
+                          activity_links:
+                            en:
+                              url: asdf.uk
+                              display_text: continue in service asdf
+                            fi:
+                              url: asdf.fi
+                              display_text: tästä palveluun asdf
+                            sv:
+                              url: asdf.sv
+                              display_text: samma på svenska
+                          activity_timestamp: '2023-05-22T15:29:49.384845+03:00'
+                          show_to_user: true
+                      - value: RECEIVED
+                        status_display_values:
+                          fi: Vastaanotettu
+                        timestamp: '2022-06-21T13:13:54.247974+03:00'
+                        activities: []
+                      - value: SUBMITTED
+                        status_display_values:
+                          fi: Lähetetty
+                        timestamp: '2022-06-21T13:13:54.247974+03:00'
+                        activities: []
+                      type: APPLICATION_FOR_RESIDENTIAL_PARKING_PERMIT
+                      human_readable_type:
+                        en: Form
+                        fi: Lomake
+                      service: Parking Permits
+                      user_id: 97c0b7a5-0b4c-4470-9a41-48d79454f233
+                      transaction_id: some transaction id 1234
+                      business_id: 0874691-5
+                      tosFunction_id: eb30af1d9d654ebc98287ca25f231bf6
+                      tosRecord_id: 521317ab6b4a4157a1714f5cc9fd69de
+                      metadata:
+                        some-field: some value relevant to the calling service
+                        status: some-arbitrary-status
+                        handler: sstallone
+                      draft: true
+                      locked_after: '2021-08-01T00:00:00.0Z'
+                      deletable: false
+                      delete_after: '2030-12-12'
+                      document_language: fi
+                      content_schema_url: https://exampleurl.fi
+                      content:
+                        formData:
+                          firstName: Dolph
+                          lastName: Lundgren
+                          birthDate: 3.11.1957
+                        reasonForApplication: No reason, just testing
+                      attachments:
+                      - id: 12994
+                        createdAt: '2021-04-21T13:17:15.511Z'
+                        updatedAt: '2021-04-21T13:17:15.511Z'
+                        filename: high-school-diploma.pdf
+                        mediaType: application/pdf
+                        size: 123223
+                        href: https://transactions-storage.com/api/v1/documents/97c0b7a5-0b4c-4470-9a41-48d79454f233/attachments/12994
+                      - id: 12995
+                        createdAt: '2021-04-21T13:17:25.511Z'
+                        updatedAt: '2021-04-21T13:17:25.511Z'
+                        filename: my-face.jpeg
+                        mediaType: image/jpeg
+                        size: 512884
+                        href: https://transactions-storage.com/api/v1/documents/97c0b7a5-0b4c-4470-9a41-48d79454f233/attachments/12995
+          description: Returns a list of documents with the given criteria. An empty
+            list is returned if there are no results.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorExample:
+                  value:
+                    errors:
+                    - code: GENERAL_ERROR
+                      description: Something went wrong, we don't know what.
+          description: One or more of the given parameters were invalid.
+        '401':
+          description: Request’s credentials are missing or invalid. A valid JWT authentication
+            is required.
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorExample:
+                  value:
+                    errors:
+                    - code: GENERAL_ERROR
+                      description: Something went wrong, we don't know what.
+          description: There has been an unexpected error during the call.
+    post:
+      operationId: documents_create
+      description: |-
+        Store a new document and its attachments.
+
+        This endpoint supports API key authentication to enable unauthenticated users to store documents. Note that if this endpoint is used in such a way, accessing the stored documents later will only be possible using the appropriate admin credentials.
+
+        This endpoint also supports authentication using a Bearer token, similarly to the other endpoints. In this case the authenticated user is able to access the stored document normally afterwards.
+      summary: Store a new document and its attachments
+      tags:
+      - documents
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateAnonymousDocument'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAnonymousDocument'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+              examples:
+                DocumentExample:
+                  value:
+                    id: f6fe8acc-3b91-41b3-a176-9d2feab2d2bb
+                    created_at: '2022-03-07T16:08:39.580394+02:00'
+                    updated_at: '2022-03-07T17:59:39.580394+02:00'
+                    status:
+                      value: PROCESSING
+                      status_display_values:
+                        fi: Käsittelyssä
+                      timestamp: '2022-06-21T13:13:54.247974+03:00'
+                      activities:
+                      - title:
+                          fi: Otsikko
+                        message:
+                          fi: Viestin teksti
+                        activity_links:
+                          en:
+                            url: asdf.uk
+                            display_text: continue in service asdf
+                          fi:
+                            url: asdf.fi
+                            display_text: tästä palveluun asdf
+                          sv:
+                            url: asdf.sv
+                            display_text: samma på svenska
+                        activity_timestamp: '2023-05-22T15:29:49.384845+03:00'
+                        show_to_user: true
+                    status_histories:
+                    - value: PROCESSING
+                      status_display_values:
+                        fi: Käsittelyssä
+                      timestamp: '2022-06-21T13:13:54.247974+03:00'
+                      activities:
+                      - title:
+                          fi: Otsikko
+                        message:
+                          fi: Viestin teksti
+                        activity_links:
+                          en:
+                            url: asdf.uk
+                            display_text: continue in service asdf
+                          fi:
+                            url: asdf.fi
+                            display_text: tästä palveluun asdf
+                          sv:
+                            url: asdf.sv
+                            display_text: samma på svenska
+                        activity_timestamp: '2023-05-22T15:29:49.384845+03:00'
+                        show_to_user: true
+                    - value: RECEIVED
+                      status_display_values:
+                        fi: Vastaanotettu
+                      timestamp: '2022-06-21T13:13:54.247974+03:00'
+                      activities: []
+                    - value: SUBMITTED
+                      status_display_values:
+                        fi: Lähetetty
+                      timestamp: '2022-06-21T13:13:54.247974+03:00'
+                      activities: []
+                    type: APPLICATION_FOR_RESIDENTIAL_PARKING_PERMIT
+                    human_readable_type:
+                      en: Form
+                      fi: Lomake
+                    service: Parking Permits
+                    user_id: 97c0b7a5-0b4c-4470-9a41-48d79454f233
+                    transaction_id: some transaction id 1234
+                    business_id: 0874691-5
+                    tosFunction_id: eb30af1d9d654ebc98287ca25f231bf6
+                    tosRecord_id: 521317ab6b4a4157a1714f5cc9fd69de
+                    metadata:
+                      some-field: some value relevant to the calling service
+                      status: some-arbitrary-status
+                      handler: sstallone
+                    draft: true
+                    locked_after: '2021-08-01T00:00:00.0Z'
+                    deletable: false
+                    delete_after: '2030-12-12'
+                    document_language: fi
+                    content_schema_url: https://exampleurl.fi
+                    content:
+                      formData:
+                        firstName: Dolph
+                        lastName: Lundgren
+                        birthDate: 3.11.1957
+                      reasonForApplication: No reason, just testing
+                    attachments:
+                    - id: 12994
+                      createdAt: '2021-04-21T13:17:15.511Z'
+                      updatedAt: '2021-04-21T13:17:15.511Z'
+                      filename: high-school-diploma.pdf
+                      mediaType: application/pdf
+                      size: 123223
+                      href: https://transactions-storage.com/api/v1/documents/97c0b7a5-0b4c-4470-9a41-48d79454f233/attachments/12994
+                    - id: 12995
+                      createdAt: '2021-04-21T13:17:25.511Z'
+                      updatedAt: '2021-04-21T13:17:25.511Z'
+                      filename: my-face.jpeg
+                      mediaType: image/jpeg
+                      size: 512884
+                      href: https://transactions-storage.com/api/v1/documents/97c0b7a5-0b4c-4470-9a41-48d79454f233/attachments/12995
+          description: The document was created successfully. The created document
+            is returned in the response body.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorExample:
+                  value:
+                    errors:
+                    - code: GENERAL_ERROR
+                      description: Something went wrong, we don't know what.
+          description: One or more of the given parameters were invalid.
+        '401':
+          description: Request’s credentials are missing or invalid. A valid JWT authentication
+            is required.
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorExample:
+                  value:
+                    errors:
+                    - code: GENERAL_ERROR
+                      description: Something went wrong, we don't know what.
+          description: There has been an unexpected error during the call.
+  /v1/documents/{document_id}/attachments/:
+    post:
+      operationId: documents_attachments_create
+      description: |-
+        Permission to access the document is checked as follows:
+        * Authenticated users are allowed access to the document if they are the owner of the document.
+
+        The following rules apply:
+        * Drafts may be modified by the owning user or the owning service's admin
+        * Non-drafts may be modified by an admin.
+        * Documents may not be modified if their `lockedAfter` date has passed.
+      summary: Upload a new attachment to a document
+      parameters:
+      - in: path
+        name: document_id
+        schema:
+          type: string
+          format: uuid
+          title: Attachment
+          description: Document to which the file is attached.
+        required: true
+      tags:
+      - documents
+      requestBody:
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attachment'
+              examples:
+                AttachmentExample:
+                  value:
+                    id: 12994
+                    createdAt: '2021-04-21T13:17:15.511Z'
+                    updatedAt: '2021-04-21T13:17:15.511Z'
+                    filename: high-school-diploma.pdf
+                    mediaType: application/pdf
+                    size: 123223
+                    href: https://transactions-storage.com/api/v1/documents/97c0b7a5-0b4c-4470-9a41-48d79454f233/attachments/12994
+          description: The attachment was uploaded successfully. The attachments information
+            is returned in the response body.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorExample:
+                  value:
+                    errors:
+                    - code: GENERAL_ERROR
+                      description: Something went wrong, we don't know what.
+          description: One or more of the given parameters were invalid.
+        '401':
+          description: Request’s credentials are missing or invalid. A valid JWT authentication
+            is required.
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorExample:
+                  value:
+                    errors:
+                    - code: GENERAL_ERROR
+                      description: Something went wrong, we don't know what.
+          description: There has been an unexpected error during the call.
+  /v1/documents/{document_id}/attachments/{id}/:
+    get:
+      operationId: documents_attachments_retrieve
+      description: |-
+        Permission to access the attachment is checked based on the containing document as follows:
+        * Admin users are allowed access to the attachment if the containing document was stored using the service they are using and whose admins they are.
+        * Authenticated users are allowed access to the attachment if they are the owner of the containing document.
+      summary: Download a document's attachment
+      parameters:
+      - in: path
+        name: document_id
+        schema:
+          type: string
+          format: uuid
+          title: Attachment
+          description: Document to which the file is attached.
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this attachment.
+        required: true
+      tags:
+      - documents
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          description: Returns the attachment as a downloadable file.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorExample:
+                  value:
+                    errors:
+                    - code: GENERAL_ERROR
+                      description: Something went wrong, we don't know what.
+          description: One or more of the given parameters were invalid.
+        '401':
+          description: Request’s credentials are missing or invalid. A valid JWT authentication
+            is required.
+        '403':
+          description: The authenticated user lacks the proper permissions to access
+            the document. Depending on the requested document, either the user does
+            not belong to the admin group of the service which owns the document,
+            the user does not own the document.
+        '404':
+          description: No document was found with `documentId` or the document did
+            not have an attachment `attachmentId`.
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorExample:
+                  value:
+                    errors:
+                    - code: GENERAL_ERROR
+                      description: Something went wrong, we don't know what.
+          description: There has been an unexpected error during the call.
+    delete:
+      operationId: documents_attachments_destroy
+      description: |-
+        Permission to remove the attachment is checked based on the containing document as follows:
+        * Authenticated users are allowed to remove the attachment if they are the owner of the containing document.
+
+        The following rules apply:
+        * Attachments of drafts may be removed by the owning user.* Attachments may not be removed if the containing document's `lockedAfter` date has passed. This should be done by removing the whole document.
+      summary: Remove a document's attachment
+      parameters:
+      - in: path
+        name: document_id
+        schema:
+          type: string
+          format: uuid
+          title: Attachment
+          description: Document to which the file is attached.
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this attachment.
+        required: true
+      tags:
+      - documents
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: The attachment was removed successfully.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorExample:
+                  value:
+                    errors:
+                    - code: GENERAL_ERROR
+                      description: Something went wrong, we don't know what.
+          description: One or more of the given parameters were invalid.
+        '401':
+          description: Request’s credentials are missing or invalid. A valid JWT authentication
+            is required.
+        '403':
+          description: The authenticated user lacks the proper permissions to access
+            the document. Depending on the requested document, either the user does
+            not belong to the admin group of the service which owns the document or
+            the user does not own the document.
+        '404':
+          description: No document was found with `documentId` or the document did
+            not have an attachment `attachmentId`.
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorExample:
+                  value:
+                    errors:
+                    - code: GENERAL_ERROR
+                      description: Something went wrong, we don't know what.
+          description: There has been an unexpected error during the call.
+  /v1/documents/{document_id}/status/:
+    get:
+      operationId: documents_status_list
+      description: Lists all document's statuses and activities related to the statuses
+      summary: Lists document's status and activity history
+      parameters:
+      - in: path
+        name: document_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - documents
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedStatusHistoryList'
+              examples:
+                DocumentStatusExampleGet:
+                  value:
+                    count: 123
+                    next: http://api.example.org/accounts/?page=4
+                    previous: http://api.example.org/accounts/?page=2
+                    results:
+                    - value: RECEIVED
+                      status_display_values:
+                        fi: Vastaanotettu
+                      timestamp: '2023-05-22T15:29:49.379761+03:00'
+                      activities:
+                      - title:
+                          fi: Otsikko
+                        message:
+                          fi: Viestin teksti
+                        activity_links:
+                          en:
+                            url: asdf.uk
+                            display_text: continue in service asdf
+                          fi:
+                            url: asdf.fi
+                            display_text: tästä palveluun asdf
+                          sv:
+                            url: asdf.sv
+                            display_text: samma på svenska
+                        activity_timestamp: '2023-05-22T15:29:49.384845+03:00'
+                        show_to_user: true
+          description: Request was allowed and document statuses were listed
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorExample:
+                  value:
+                    errors:
+                    - code: GENERAL_ERROR
+                      description: Something went wrong, we don't know what.
+          description: One or more of the given parameters were invalid.
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+                description: Unspecified response body
+          description: ''
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorExample:
+                  value:
+                    errors:
+                    - code: GENERAL_ERROR
+                      description: Something went wrong, we don't know what.
+          description: There has been an unexpected error during the call.
+    post:
+      operationId: documents_status_create
+      description: Allows creating either individual new status, activity or both
+        status and activity. See example
+      summary: Create new status and/or activity for document
+      parameters:
+      - in: path
+        name: document_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - documents
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStatusHistory'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateStatusHistory'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateStatusHistory'
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusHistory'
+              examples:
+                DocumentStatusExampleCreate:
+                  value:
+                    value: RECEIVED
+                    status_display_values:
+                      fi: Vastaanotettu
+                    timestamp: '2023-05-22T15:29:49.379761+03:00'
+                    activities:
+                    - title:
+                        fi: Otsikko
+                      message:
+                        fi: Viestin teksti
+                      activity_links:
+                        en:
+                          url: asdf.uk
+                          display_text: continue in service asdf
+                        fi:
+                          url: asdf.fi
+                          display_text: tästä palveluun asdf
+                        sv:
+                          url: asdf.sv
+                          display_text: samma på svenska
+                      activity_timestamp: '2023-05-22T15:29:49.384845+03:00'
+                      show_to_user: true
+          description: New Status and/or Activity was created. All Activities related
+            to the status is returned.
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusHistory'
+          description: |-
+            Return HTTP 200 OK, if nothing changed but request was correctly formated.
+                             For example if same status is posted twice. Returns latest StatusHistory object.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: One or more of the given parameters were invalid.
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+                description: Unspecified response body
+          description: ''
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: There has been an unexpected error during the call.
+  /v1/documents/{id}/:
+    get:
+      operationId: documents_retrieve
+      description: |-
+        This endpoint allows a user to fetch a document's details.
+
+        Permission to access the document is checked as follows:
+
+        * Admin users are allowed access to the document if it was stored using the service they are using and whose admins they are.
+        * Authenticated users are allowed access to the document if they are the owner of the document.
+      summary: Fetch a document by ID
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this document.
+        required: true
+      tags:
+      - documents
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+              examples:
+                DocumentExample:
+                  value:
+                    id: f6fe8acc-3b91-41b3-a176-9d2feab2d2bb
+                    created_at: '2022-03-07T16:08:39.580394+02:00'
+                    updated_at: '2022-03-07T17:59:39.580394+02:00'
+                    status:
+                      value: PROCESSING
+                      status_display_values:
+                        fi: Käsittelyssä
+                      timestamp: '2022-06-21T13:13:54.247974+03:00'
+                      activities:
+                      - title:
+                          fi: Otsikko
+                        message:
+                          fi: Viestin teksti
+                        activity_links:
+                          en:
+                            url: asdf.uk
+                            display_text: continue in service asdf
+                          fi:
+                            url: asdf.fi
+                            display_text: tästä palveluun asdf
+                          sv:
+                            url: asdf.sv
+                            display_text: samma på svenska
+                        activity_timestamp: '2023-05-22T15:29:49.384845+03:00'
+                        show_to_user: true
+                    status_histories:
+                    - value: PROCESSING
+                      status_display_values:
+                        fi: Käsittelyssä
+                      timestamp: '2022-06-21T13:13:54.247974+03:00'
+                      activities:
+                      - title:
+                          fi: Otsikko
+                        message:
+                          fi: Viestin teksti
+                        activity_links:
+                          en:
+                            url: asdf.uk
+                            display_text: continue in service asdf
+                          fi:
+                            url: asdf.fi
+                            display_text: tästä palveluun asdf
+                          sv:
+                            url: asdf.sv
+                            display_text: samma på svenska
+                        activity_timestamp: '2023-05-22T15:29:49.384845+03:00'
+                        show_to_user: true
+                    - value: RECEIVED
+                      status_display_values:
+                        fi: Vastaanotettu
+                      timestamp: '2022-06-21T13:13:54.247974+03:00'
+                      activities: []
+                    - value: SUBMITTED
+                      status_display_values:
+                        fi: Lähetetty
+                      timestamp: '2022-06-21T13:13:54.247974+03:00'
+                      activities: []
+                    type: APPLICATION_FOR_RESIDENTIAL_PARKING_PERMIT
+                    human_readable_type:
+                      en: Form
+                      fi: Lomake
+                    service: Parking Permits
+                    user_id: 97c0b7a5-0b4c-4470-9a41-48d79454f233
+                    transaction_id: some transaction id 1234
+                    business_id: 0874691-5
+                    tosFunction_id: eb30af1d9d654ebc98287ca25f231bf6
+                    tosRecord_id: 521317ab6b4a4157a1714f5cc9fd69de
+                    metadata:
+                      some-field: some value relevant to the calling service
+                      status: some-arbitrary-status
+                      handler: sstallone
+                    draft: true
+                    locked_after: '2021-08-01T00:00:00.0Z'
+                    deletable: false
+                    delete_after: '2030-12-12'
+                    document_language: fi
+                    content_schema_url: https://exampleurl.fi
+                    content:
+                      formData:
+                        firstName: Dolph
+                        lastName: Lundgren
+                        birthDate: 3.11.1957
+                      reasonForApplication: No reason, just testing
+                    attachments:
+                    - id: 12994
+                      createdAt: '2021-04-21T13:17:15.511Z'
+                      updatedAt: '2021-04-21T13:17:15.511Z'
+                      filename: high-school-diploma.pdf
+                      mediaType: application/pdf
+                      size: 123223
+                      href: https://transactions-storage.com/api/v1/documents/97c0b7a5-0b4c-4470-9a41-48d79454f233/attachments/12994
+                    - id: 12995
+                      createdAt: '2021-04-21T13:17:25.511Z'
+                      updatedAt: '2021-04-21T13:17:25.511Z'
+                      filename: my-face.jpeg
+                      mediaType: image/jpeg
+                      size: 512884
+                      href: https://transactions-storage.com/api/v1/documents/97c0b7a5-0b4c-4470-9a41-48d79454f233/attachments/12995
+          description: The document was found and its contents are returned as JSON.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorExample:
+                  value:
+                    errors:
+                    - code: GENERAL_ERROR
+                      description: Something went wrong, we don't know what.
+          description: One or more of the given parameters were invalid.
+        '401':
+          description: Request’s credentials are missing or invalid. A valid JWT authentication
+            is required.
+        '403':
+          description: The authenticated user lacks the proper permissions to access
+            the document. Depending on the requested document, either the user does
+            not belong to the admin group of the service which owns the document,
+            the user does not own the document.
+        '404':
+          description: No document was found with `documentId`.
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorExample:
+                  value:
+                    errors:
+                    - code: GENERAL_ERROR
+                      description: Something went wrong, we don't know what.
+          description: There has been an unexpected error during the call.
+    patch:
+      operationId: documents_partial_update
+      description: |-
+        Permission to access the document is checked as follows:
+
+        * Admin users are allowed access to the document if it was stored using the service they are using and whose admins they are.
+        * Authenticated users are allowed access to the document if they are the owner of the document.
+
+        The following rules apply:
+        * Drafts may be modified by the owning user or the owning service's admin.
+        * Non-drafts may be modified by an admin.
+        * Documents may not be modified if their `lockedAfter` date has passed.
+      summary: Update an existing document
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this document.
+        required: true
+      tags:
+      - documents
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedDocument'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedDocument'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+              examples:
+                DocumentExample:
+                  value:
+                    id: f6fe8acc-3b91-41b3-a176-9d2feab2d2bb
+                    created_at: '2022-03-07T16:08:39.580394+02:00'
+                    updated_at: '2022-03-07T17:59:39.580394+02:00'
+                    status:
+                      value: PROCESSING
+                      status_display_values:
+                        fi: Käsittelyssä
+                      timestamp: '2022-06-21T13:13:54.247974+03:00'
+                      activities:
+                      - title:
+                          fi: Otsikko
+                        message:
+                          fi: Viestin teksti
+                        activity_links:
+                          en:
+                            url: asdf.uk
+                            display_text: continue in service asdf
+                          fi:
+                            url: asdf.fi
+                            display_text: tästä palveluun asdf
+                          sv:
+                            url: asdf.sv
+                            display_text: samma på svenska
+                        activity_timestamp: '2023-05-22T15:29:49.384845+03:00'
+                        show_to_user: true
+                    status_histories:
+                    - value: PROCESSING
+                      status_display_values:
+                        fi: Käsittelyssä
+                      timestamp: '2022-06-21T13:13:54.247974+03:00'
+                      activities:
+                      - title:
+                          fi: Otsikko
+                        message:
+                          fi: Viestin teksti
+                        activity_links:
+                          en:
+                            url: asdf.uk
+                            display_text: continue in service asdf
+                          fi:
+                            url: asdf.fi
+                            display_text: tästä palveluun asdf
+                          sv:
+                            url: asdf.sv
+                            display_text: samma på svenska
+                        activity_timestamp: '2023-05-22T15:29:49.384845+03:00'
+                        show_to_user: true
+                    - value: RECEIVED
+                      status_display_values:
+                        fi: Vastaanotettu
+                      timestamp: '2022-06-21T13:13:54.247974+03:00'
+                      activities: []
+                    - value: SUBMITTED
+                      status_display_values:
+                        fi: Lähetetty
+                      timestamp: '2022-06-21T13:13:54.247974+03:00'
+                      activities: []
+                    type: APPLICATION_FOR_RESIDENTIAL_PARKING_PERMIT
+                    human_readable_type:
+                      en: Form
+                      fi: Lomake
+                    service: Parking Permits
+                    user_id: 97c0b7a5-0b4c-4470-9a41-48d79454f233
+                    transaction_id: some transaction id 1234
+                    business_id: 0874691-5
+                    tosFunction_id: eb30af1d9d654ebc98287ca25f231bf6
+                    tosRecord_id: 521317ab6b4a4157a1714f5cc9fd69de
+                    metadata:
+                      some-field: some value relevant to the calling service
+                      status: some-arbitrary-status
+                      handler: sstallone
+                    draft: true
+                    locked_after: '2021-08-01T00:00:00.0Z'
+                    deletable: false
+                    delete_after: '2030-12-12'
+                    document_language: fi
+                    content_schema_url: https://exampleurl.fi
+                    content:
+                      formData:
+                        firstName: Dolph
+                        lastName: Lundgren
+                        birthDate: 3.11.1957
+                      reasonForApplication: No reason, just testing
+                    attachments:
+                    - id: 12994
+                      createdAt: '2021-04-21T13:17:15.511Z'
+                      updatedAt: '2021-04-21T13:17:15.511Z'
+                      filename: high-school-diploma.pdf
+                      mediaType: application/pdf
+                      size: 123223
+                      href: https://transactions-storage.com/api/v1/documents/97c0b7a5-0b4c-4470-9a41-48d79454f233/attachments/12994
+                    - id: 12995
+                      createdAt: '2021-04-21T13:17:25.511Z'
+                      updatedAt: '2021-04-21T13:17:25.511Z'
+                      filename: my-face.jpeg
+                      mediaType: image/jpeg
+                      size: 512884
+                      href: https://transactions-storage.com/api/v1/documents/97c0b7a5-0b4c-4470-9a41-48d79454f233/attachments/12995
+          description: The Document was updated successfully. The updated contents
+            are returned in the response body.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorExample:
+                  value:
+                    errors:
+                    - code: GENERAL_ERROR
+                      description: Something went wrong, we don't know what.
+          description: One or more of the given parameters were invalid.
+        '401':
+          description: Request’s credentials are missing or invalid. A valid JWT authentication
+            is required.
+        '403':
+          description: The authenticated user lacks the proper permissions to access
+            the document. Depending on the requested document, either the user does
+            not belong to the admin group of the service which owns the document,
+            the user does not own the document.
+        '404':
+          description: No document was found with `documentId`.
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorExample:
+                  value:
+                    errors:
+                    - code: GENERAL_ERROR
+                      description: Something went wrong, we don't know what.
+          description: There has been an unexpected error during the call.
+    delete:
+      operationId: documents_destroy
+      description: |-
+        Permission to access the document is checked as follows:
+        * Authenticated users are allowed access to the document if they are the owner of the document.
+
+        The following rules apply:
+        * Drafts may be removed by the owning user.
+      summary: Remove an existing document and its attachments
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this document.
+        required: true
+      tags:
+      - documents
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: The specified Document and its attachments were removed successfully
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorExample:
+                  value:
+                    errors:
+                    - code: GENERAL_ERROR
+                      description: Something went wrong, we don't know what.
+          description: One or more of the given parameters were invalid.
+        '401':
+          description: Request’s credentials are missing or invalid. A valid JWT authentication
+            is required.
+        '403':
+          description: The authenticated user lacks the proper permissions to access
+            the document. Depending on the requested document, either the user does
+            not belong to the admin group of the service which owns the document,
+            the user does not own the document.
+        '404':
+          description: No document was found with `documentId`.
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorExample:
+                  value:
+                    errors:
+                    - code: GENERAL_ERROR
+                      description: Something went wrong, we don't know what.
+          description: There has been an unexpected error during the call.
+  /v1/documents/batch-list/:
+    post:
+      operationId: documents_batch_list_create
+      description: This endpoint allows a service to fetch multiple documents by their
+        IDs
+      summary: Fetch multiple documents by IDs
+      tags:
+      - documents
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: {}
+              description: Unspecified request body
+          application/json:
+            schema:
+              type: object
+              additionalProperties: {}
+              description: Unspecified request body
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+          description: The document/s was found and contents are returned as JSON.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: One or more of the given parameters were invalid.
+        '401':
+          description: Request’s credentials are missing or invalid. A valid JWT authentication
+            is required.
+        '403':
+          description: The authenticated user lacks the proper permissions to access
+            the document. Depending on the requested document, either the user does
+            not belong to the admin group of the service which owns the document,
+            the user does not own the document.
+        '404':
+          description: No document was found with `documentId`.
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: There has been an unexpected error during the call.
+  /v1/gdpr-api/{user__uuid}/:
+    get:
+      operationId: gdpr_api_retrieve
+      description: Used to fetch GDPR data of an user from single service.
+      summary: List user's document details and number of deletable and undeletable
+        documents.
+      parameters:
+      - in: path
+        name: user__uuid
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - gdpr-api
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GDPR'
+              examples:
+                GDPRListResponse:
+                  value:
+                    data:
+                      total_deletable: 0
+                      total_undeletable: 1
+                      documents:
+                      - id: 0576d4e7-a84d-411f-9285-bf7dcc864ae0
+                        created_at: '2022-06-27T17:51:59.374880+03:00'
+                        user_id: a67dec08-cc7c-11ec-a4fb-00155dcd8647
+                        service: TestService
+                        type: mysterious form
+                        human_readable_type:
+                          en: Mysterious Form
+                        deletable: true
+                        delete_after: '2030-12-12'
+                        attachment_count: 0
+                        attachments: []
+                      - id: 05d3497b-b5ab-46c4-a7bf-5b6cbfc344b0
+                        created_at: '2022-06-09T17:16:49.565282+03:00'
+                        user_id: a67dec08-cc7c-11ec-a4fb-00155dcd8647
+                        service: TestService
+                        type: mysterious form
+                        human_readable_type: {}
+                        deletable: false
+                        delete_after: '2030-12-12'
+                        attachment_count: 1
+                        attachments:
+                        - myfavoritesong.mp3
+                  summary: GDPR List Response
+          description: User was found and their documents are listed. Number of deletable
+            and undeletable documents are included.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: One or more of the given parameters were invalid.
+        '401':
+          description: Authorization not provided. API Key authentication required.
+        '403':
+          description: Current authentication doesn't allow viewing of this users
+            documents
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: There has been an unexpected error during the call.
+    delete:
+      operationId: gdpr_api_destroy
+      description: Delete user's documents from a single service that aren't under
+        contractual obligation.
+      summary: List user's documents that weren't deleted. Deletable field should
+        be zero.
+      parameters:
+      - in: path
+        name: user__uuid
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - gdpr-api
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GDPR'
+              examples:
+                GDPRListResponse:
+                  value:
+                    data:
+                      total_deletable: 0
+                      total_undeletable: 1
+                      documents:
+                      - id: 0576d4e7-a84d-411f-9285-bf7dcc864ae0
+                        created_at: '2022-06-27T17:51:59.374880+03:00'
+                        user_id: a67dec08-cc7c-11ec-a4fb-00155dcd8647
+                        service: TestService
+                        type: mysterious form
+                        human_readable_type:
+                          en: Mysterious Form
+                        deletable: true
+                        delete_after: '2030-12-12'
+                        attachment_count: 0
+                        attachments: []
+                      - id: 05d3497b-b5ab-46c4-a7bf-5b6cbfc344b0
+                        created_at: '2022-06-09T17:16:49.565282+03:00'
+                        user_id: a67dec08-cc7c-11ec-a4fb-00155dcd8647
+                        service: TestService
+                        type: mysterious form
+                        human_readable_type: {}
+                        deletable: false
+                        delete_after: '2030-12-12'
+                        attachment_count: 1
+                        attachments:
+                        - myfavoritesong.mp3
+                  summary: GDPR List Response
+          description: User was found and their deletable documents and attachments
+            have been removed. Documents with contractual oblications are returned
+            in response body. Field 'total_deletable' should now be zero.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: One or more of the given parameters were invalid.
+        '401':
+          description: Authorization not provided. API Key authentication required.
+        '403':
+          description: Current authentication doesn't allow viewing of this users
+            documents
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: There has been an unexpected error during the call.
+  /v1/schema/:
+    get:
+      operationId: schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - en
+          - fi
+          - sv
+      tags:
+      - schema
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /v1/statistics/:
+    get:
+      operationId: statistics_list
+      description: |-
+        Lists non sensitive data of all documents in ATV. Service staff can fetch data from the
+                 respective service. Currently the use case is to verify documents match between ATV and services.
+      summary: List and filter non sensitive parts of service's documents.
+      parameters:
+      - in: query
+        name: created_after
+        schema:
+          type: string
+          format: date
+        description: Created after
+      - in: query
+        name: created_before
+        schema:
+          type: string
+          format: date
+        description: Created before
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: services
+        schema:
+          type: string
+        description: Search for documents with the given services separated by comma
+      - in: query
+        name: statuses
+        schema:
+          type: string
+        description: Search for documents with the given statuses separated by comma.
+      - in: query
+        name: transaction_id
+        schema:
+          type: string
+        description: Search for documents with the given transaction id
+      - in: query
+        name: types
+        schema:
+          type: string
+        description: Search for documents with the given types separated by comma
+      tags:
+      - statistics
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedDocumentMetadataList'
+              examples:
+                DocumentExample:
+                  value:
+                    count: 123
+                    next: http://api.example.org/accounts/?page=4
+                    previous: http://api.example.org/accounts/?page=2
+                    results:
+                    - id: f6fe8acc-3b91-41b3-a176-9d2feab2d2bb
+                      created_at: '2022-03-07T16:08:39.580394+02:00'
+                      user_id: g6fe8acc-3b91-41b3-a176-9d2feab2d2ba
+                      service: Parking Permits
+                      transaction_id: TRANSACTION123
+                      type: APPLICATION_FOR_RESIDENTIAL_PARKING_PERMIT
+                      human_readable_type:
+                        en: Form
+                        fi: Lomake
+                      status: PROCESSING
+                      deletable: true
+                      attachments:
+                      - attachment1.pdf
+                      - attachment2.docs
+                      attachment_count: 2
+          description: Request was allowed and documents were listed
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorExample:
+                  value:
+                    errors:
+                    - code: GENERAL_ERROR
+                      description: Something went wrong, we don't know what.
+          description: One or more of the given parameters were invalid.
+        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+                description: Unspecified response body
+          description: ''
+        '403':
+          description: Current authentication doesn't allow viewing document statistics
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorExample:
+                  value:
+                    errors:
+                    - code: GENERAL_ERROR
+                      description: Something went wrong, we don't know what.
+          description: There has been an unexpected error during the call.
+  /v1/userdocuments/{user__uuid}/:
+    get:
+      operationId: userdocuments_retrieve
+      description: |-
+        List users documents parts that doesn't contain sensitive information to easily see current
+                applications and documents of a single user across services.
+      summary: List and filter non sensitive parts of users documents.
+      parameters:
+      - in: query
+        name: status
+        schema:
+          type: string
+        description: Search for documents with the given status
+      - in: query
+        name: transaction_id
+        schema:
+          type: string
+        description: Search for documents with the given transaction id
+      - in: query
+        name: type
+        schema:
+          type: string
+        description: Search for documents with the given type
+      - in: path
+        name: user__uuid
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - userdocuments
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentMetadata'
+              examples:
+                DocumentMetadataExample:
+                  value:
+                    count: 1
+                    next: null
+                    previous: null
+                    results:
+                    - id: cf1bf707-5fef-4d21-841a-3408e5f1ea66
+                      type: mysterious form
+                      human_readable_type: {}
+                      created_at: '2023-05-15T17:00:08.961578+03:00'
+                      updated_at: '2023-05-22T15:29:49.387682+03:00'
+                      service:
+                        name: TestService
+                        display_names:
+                          en: Test Service
+                          fi: Testi Palvelu
+                          sv: Samma på svenska
+                        service_link: https://example.hel.fi
+                      status:
+                        value: RECEIVED
+                        status_display_values:
+                          fi: Vastaanotettu
+                        timestamp: '2023-05-22T15:29:49.379761+03:00'
+                        activities:
+                        - title:
+                            fi: Otsikko
+                          message:
+                            fi: Viestin teksti
+                          activity_links:
+                            en:
+                              url: asdf.uk
+                              display_text: continue in service asdf
+                            fi:
+                              url: asdf.fi
+                              display_text: tästä palveluun asdf
+                            sv:
+                              url: asdf.sv
+                              display_text: samma på svenska
+                          activity_timestamp: '2023-05-22T15:29:49.384845+03:00'
+                          show_to_user: true
+                      status_histories:
+                      - value: RECEIVED
+                        status_display_values:
+                          fi: Vastaanotettu
+                        timestamp: '2023-05-22T15:29:49.379761+03:00'
+                        activities:
+                        - title:
+                            fi: Otsikko
+                          message:
+                            fi: Viestin teksti
+                          activity_links:
+                            en:
+                              url: asdf.uk
+                              display_text: continue in service asdf
+                            fi:
+                              url: asdf.fi
+                              display_text: tästä palveluun asdf
+                            sv:
+                              url: asdf.sv
+                              display_text: samma på svenska
+                          activity_timestamp: '2023-05-22T15:29:49.384845+03:00'
+                          show_to_user: true
+                      delete_after: '2026-12-12'
+                      document_language: fi
+                      content_schema_url: https://example.hel.fi
+          description: User was found and their documents are listed.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorExample:
+                  value:
+                    errors:
+                    - code: GENERAL_ERROR
+                      description: Something went wrong, we don't know what.
+          description: One or more of the given parameters were invalid.
+        '401':
+          description: Request’s credentials are missing or invalid. A valid JWT authentication
+            is required.
+        '403':
+          description: Current authentication doesn't allow viewing of this users
+            documents
+        '404':
+          description: No user matches the given query.
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ErrorExample:
+                  value:
+                    errors:
+                    - code: GENERAL_ERROR
+                      description: Something went wrong, we don't know what.
+          description: There has been an unexpected error during the call.
+components:
+  schemas:
+    Activity:
+      type: object
+      properties:
+        title: {}
+        message: {}
+        activity_links:
+          description: Structure with links related to activity with display text
+            in multiple languages
+        activity_timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+        show_to_user:
+          type: boolean
+      required:
+      - activity_timestamp
+      - message
+      - title
+    Attachment:
+      type: object
+      description: Basic "read" serializer for the Attachment model
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        filename:
+          type: string
+          description: The original filename of the attachment.
+          maxLength: 255
+        media_type:
+          type: string
+          description: The media type of the attachment.
+          maxLength: 255
+        size:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Size of the attachment in bytes.
+        href:
+          type: string
+          readOnly: true
+      required:
+      - created_at
+      - filename
+      - href
+      - id
+      - size
+      - updated_at
+    CreateAnonymousDocument:
+      type: object
+      description: |-
+        Create a Document with Attachment for an anonymous user submitting the document
+        through a Service authorized with an API key.
+
+        Also handles the creation of the associated Attachments through `CreateAttachmentSerializer`.
+      properties:
+        status:
+          type: string
+          description: Status information given by the owning service. Could be e.g.
+            some constant string.
+          maxLength: 255
+        status_display_values:
+          description: Status display values/translations. It's recommended to use
+            ISO 639-1 language codes as key values.
+        type:
+          type: string
+          description: Type information given by the owning service. Could be e.g.
+            the type of the document.
+          maxLength: 255
+        human_readable_type:
+          description: Document type and translations for end user. It's recommended
+            to use ISO 639-1 language codes as key values.
+        user_id:
+          type: string
+          format: uuid
+        transaction_id:
+          type: string
+          description: Transaction identifier given by the owning service. Could be
+            e.g. a UUID.
+          maxLength: 255
+        business_id:
+          type: string
+          description: The business ID of the organization which owns this document.
+          pattern: ^[0-9]{7}\-[0-9]{1}$
+          maxLength: 9
+        tos_function_id:
+          type: string
+          description: UUID without dashes. Should correspond with a Function instance
+            (e.g. the id from https://api.hel.fi/helerm/v1/function/eb30af1d9d654ebc98287ca25f231bf6/)
+            which is applied to the stored document when considering storage time.
+          maxLength: 32
+        tos_record_id:
+          type: string
+          description: UUID without dashes. Should correspond to a record ID (e.g.
+            records[].id from https://api.hel.fi/helerm/v1/function/eb30af1d9d654ebc98287ca25f231bf6/)
+            within a Function instance which is applied to the stored document when
+            considering storage time.
+          maxLength: 32
+        metadata:
+          description: Key-value pairs given by the calling service. These fields
+            should enable the service to store some relevant information which it
+            can use to filter/sort documents, e.g. the handler of the document.
+        content: {}
+        draft:
+          type: boolean
+          description: Is this document a draft or not. Drafts can be modified by
+            a user.
+        locked_after:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date and time after which this document cannot be modified,
+            except for deleting. This field should be filled by the calling service
+            if it knows e.g. that a certain application has a deadline.
+        deletable:
+          type: boolean
+          description: Is document deletable by user.
+        delete_after:
+          type: string
+          format: date
+          nullable: true
+          description: Date which after the document and related attachments are permanently
+            deleted
+        document_language:
+          type: string
+          nullable: true
+          description: ISO 639-1 Language code of document content if known
+          maxLength: 5
+        content_schema_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Link to content schema if available
+          maxLength: 200
+        attachments:
+          type: array
+          items:
+            type: string
+            format: uri
+      required:
+      - content
+      - tos_function_id
+      - tos_record_id
+    CreateStatusHistory:
+      type: object
+      properties:
+        value:
+          type: string
+          maxLength: 255
+        status_display_values:
+          description: Status display values/translations. It's recommended to use
+            ISO 639-1 language codes as key values.
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+        activity:
+          $ref: '#/components/schemas/Activity'
+      required:
+      - timestamp
+    Document:
+      type: object
+      description: Basic "read" serializer for the Document model
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        status:
+          type: string
+          description: Status information given by the owning service. Could be e.g.
+            some constant string.
+          maxLength: 255
+        status_display_values:
+          description: Status display values/translations. It's recommended to use
+            ISO 639-1 language codes as key values.
+        status_timestamp:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date and time when document status was last changed. Field
+            is automatically set.
+        status_histories:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatusHistory'
+          readOnly: true
+        type:
+          type: string
+          description: Type information given by the owning service. Could be e.g.
+            the type of the document.
+          maxLength: 255
+        human_readable_type:
+          description: Document type and translations for end user. It's recommended
+            to use ISO 639-1 language codes as key values.
+        service:
+          type: string
+          readOnly: true
+        user_id:
+          type: string
+          format: uuid
+          readOnly: true
+        transaction_id:
+          type: string
+          description: Transaction identifier given by the owning service. Could be
+            e.g. a UUID.
+          maxLength: 255
+        business_id:
+          type: string
+          description: The business ID of the organization which owns this document.
+          pattern: ^[0-9]{7}\-[0-9]{1}$
+          maxLength: 9
+        tos_function_id:
+          type: string
+          description: UUID without dashes. Should correspond with a Function instance
+            (e.g. the id from https://api.hel.fi/helerm/v1/function/eb30af1d9d654ebc98287ca25f231bf6/)
+            which is applied to the stored document when considering storage time.
+          maxLength: 32
+        tos_record_id:
+          type: string
+          description: UUID without dashes. Should correspond to a record ID (e.g.
+            records[].id from https://api.hel.fi/helerm/v1/function/eb30af1d9d654ebc98287ca25f231bf6/)
+            within a Function instance which is applied to the stored document when
+            considering storage time.
+          maxLength: 32
+        metadata:
+          description: Key-value pairs given by the calling service. These fields
+            should enable the service to store some relevant information which it
+            can use to filter/sort documents, e.g. the handler of the document.
+        content: {}
+        draft:
+          type: boolean
+          description: Is this document a draft or not. Drafts can be modified by
+            a user.
+        locked_after:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date and time after which this document cannot be modified,
+            except for deleting. This field should be filled by the calling service
+            if it knows e.g. that a certain application has a deadline.
+        deletable:
+          type: boolean
+          description: Is document deletable by user.
+        delete_after:
+          type: string
+          format: date
+          nullable: true
+          description: Date which after the document and related attachments are permanently
+            deleted
+        document_language:
+          type: string
+          nullable: true
+          description: ISO 639-1 Language code of document content if known
+          maxLength: 5
+        content_schema_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Link to content schema if available
+          maxLength: 200
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attachment'
+          readOnly: true
+      required:
+      - attachments
+      - content
+      - created_at
+      - id
+      - service
+      - status_histories
+      - tos_function_id
+      - tos_record_id
+      - updated_at
+      - user_id
+    DocumentMetadata:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        type:
+          type: string
+          description: Type information given by the owning service. Could be e.g.
+            the type of the document.
+          maxLength: 255
+        human_readable_type:
+          description: Document type and translations for end user. It's recommended
+            to use ISO 639-1 language codes as key values.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        service:
+          allOf:
+          - $ref: '#/components/schemas/Service'
+          readOnly: true
+        status:
+          type: string
+          description: Status information given by the owning service. Could be e.g.
+            some constant string.
+          maxLength: 255
+        status_display_values:
+          description: Status display values/translations. It's recommended to use
+            ISO 639-1 language codes as key values.
+        status_timestamp:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date and time when document status was last changed. Field
+            is automatically set.
+        status_histories:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatusHistory'
+          readOnly: true
+        delete_after:
+          type: string
+          format: date
+          nullable: true
+          description: Date which after the document and related attachments are permanently
+            deleted
+        document_language:
+          type: string
+          nullable: true
+          description: ISO 639-1 Language code of document content if known
+          maxLength: 5
+        content_schema_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Link to content schema if available
+          maxLength: 200
+      required:
+      - created_at
+      - id
+      - service
+      - status_histories
+      - updated_at
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        description:
+          type: string
+      required:
+      - code
+      - description
+    ErrorResponse:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/Error'
+      required:
+      - errors
+    GDPR:
+      type: object
+      properties:
+        data:
+          type: string
+          readOnly: true
+      required:
+      - data
+    PaginatedDocumentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Document'
+    PaginatedDocumentMetadataList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentMetadata'
+    PaginatedStatusHistoryList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatusHistory'
+    PatchedDocument:
+      type: object
+      description: Basic "read" serializer for the Document model
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        status:
+          type: string
+          description: Status information given by the owning service. Could be e.g.
+            some constant string.
+          maxLength: 255
+        status_display_values:
+          description: Status display values/translations. It's recommended to use
+            ISO 639-1 language codes as key values.
+        status_timestamp:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date and time when document status was last changed. Field
+            is automatically set.
+        status_histories:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatusHistory'
+          readOnly: true
+        type:
+          type: string
+          description: Type information given by the owning service. Could be e.g.
+            the type of the document.
+          maxLength: 255
+        human_readable_type:
+          description: Document type and translations for end user. It's recommended
+            to use ISO 639-1 language codes as key values.
+        service:
+          type: string
+          readOnly: true
+        user_id:
+          type: string
+          format: uuid
+          readOnly: true
+        transaction_id:
+          type: string
+          description: Transaction identifier given by the owning service. Could be
+            e.g. a UUID.
+          maxLength: 255
+        business_id:
+          type: string
+          description: The business ID of the organization which owns this document.
+          pattern: ^[0-9]{7}\-[0-9]{1}$
+          maxLength: 9
+        tos_function_id:
+          type: string
+          description: UUID without dashes. Should correspond with a Function instance
+            (e.g. the id from https://api.hel.fi/helerm/v1/function/eb30af1d9d654ebc98287ca25f231bf6/)
+            which is applied to the stored document when considering storage time.
+          maxLength: 32
+        tos_record_id:
+          type: string
+          description: UUID without dashes. Should correspond to a record ID (e.g.
+            records[].id from https://api.hel.fi/helerm/v1/function/eb30af1d9d654ebc98287ca25f231bf6/)
+            within a Function instance which is applied to the stored document when
+            considering storage time.
+          maxLength: 32
+        metadata:
+          description: Key-value pairs given by the calling service. These fields
+            should enable the service to store some relevant information which it
+            can use to filter/sort documents, e.g. the handler of the document.
+        content: {}
+        draft:
+          type: boolean
+          description: Is this document a draft or not. Drafts can be modified by
+            a user.
+        locked_after:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date and time after which this document cannot be modified,
+            except for deleting. This field should be filled by the calling service
+            if it knows e.g. that a certain application has a deadline.
+        deletable:
+          type: boolean
+          description: Is document deletable by user.
+        delete_after:
+          type: string
+          format: date
+          nullable: true
+          description: Date which after the document and related attachments are permanently
+            deleted
+        document_language:
+          type: string
+          nullable: true
+          description: ISO 639-1 Language code of document content if known
+          maxLength: 5
+        content_schema_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Link to content schema if available
+          maxLength: 200
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attachment'
+          readOnly: true
+    Service:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 50
+        display_names:
+          description: Json structure containing display names for service
+        service_link:
+          type: string
+          format: uri
+          description: Link to service's website
+          maxLength: 200
+      required:
+      - name
+    StatusHistory:
+      type: object
+      properties:
+        value:
+          type: string
+          maxLength: 255
+        status_display_values:
+          description: Status display values/translations. It's recommended to use
+            ISO 639-1 language codes as key values.
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+        activities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Activity'
+      required:
+      - timestamp
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
