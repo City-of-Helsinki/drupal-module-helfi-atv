@@ -83,6 +83,16 @@ class MockClientFactory {
   }
 
   /**
+   * Get request.
+   *
+   * @param int $index
+   *   Response index.
+   */
+  public function getRequest($index = 0) {
+    return $this->historyContainer[$index]['request'];
+  }
+
+  /**
    * Constructs a new client object from some configuration.
    *
    * @param array $config
