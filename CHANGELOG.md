@@ -1,7 +1,10 @@
 # Changelog
 
-## 0.9.29
+## 0.9.30
+- 08a898c (HEAD -> release/0.9.30, origin/develop, develop) fix: Update test signature to support new class (#42)
+- 0506e07 test: AU-1407 request tests (#41)
 
+## 0.9.29
 - ded8eb4 fix: AU-2518: Change getUserId signature as this may be null in some cases
 - 24f6571 fix: Revert "fix: AU-1934: Modify json output (#34)"
 
