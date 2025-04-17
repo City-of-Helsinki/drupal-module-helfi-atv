@@ -1,15 +1,10 @@
 {
     "name": "drupal/helfi_atv",
-    "description": "ATV integration module",
     "type": "drupal-module",
+    "description": "ATV integration module",
     "license": "GPL-2.0-or-later",
     "minimum-stability": "dev",
-    "version": "0.9.30",
-    "autoload": {
-        "psr-4": {
-            "Drupal\\HelfiAtv\\": "src/"
-        }
-    },
+    "prefer-stable": true,
     "require": {
         "drupal/helfi_helsinki_profiili": "*",
         "drupal/helfi_tunnistamo": "^3.0",
