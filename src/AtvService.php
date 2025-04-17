@@ -1244,7 +1244,7 @@ class AtvService {
   }
 
   /**
-   * Is debug enebled.
+   * Is debug enabled.
    *
    * @return bool
    *   Debug true/false
