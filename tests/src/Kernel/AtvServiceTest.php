@@ -6,7 +6,6 @@ namespace Drupal\Tests\helfi_atv\Kernel;
 
 use Drupal\helfi_atv\AtvAuthFailedException;
 use Drupal\helfi_atv\AtvService;
-use Drupal\KernelTests\KernelTestBase;
 use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\Psr7\Response;
 
@@ -16,42 +15,7 @@ use GuzzleHttp\Psr7\Response;
  * @covers \Drupal\helfi_atv\AtvService
  * @group helfi_atv
  */
-class AtvServiceTest extends KernelTestBase {
-  /**
-   * The modules to load to run the test.
-   *
-   * @var array
-   */
-  protected static $modules = [
-    // Drupal.
-    'file',
-    // Contrib.
-    'openid_connect',
-    // Helfi modules.
-    'helfi_api_base',
-    'helfi_atv',
-    'helfi_atv_test',
-    'helfi_helsinki_profiili',
-    // Helsinki profiili requires audit log unnecessarily.
-    'helfi_audit_log',
-  ];
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function setUp(): void {
-    parent::setUp();
-    $this->installConfig(['helfi_atv']);
-    putenv('ATV_API_KEY=fake');
-    putenv('ATV_USE_TOKEN_AUTH=true');
-    putenv('ATV_TOKEN_NAME=tokenName');
-    putenv('ATV_BASE_URL=127.0.0.1');
-    putenv('ATV_VERSION=1.1');
-    putenv('ATV_USE_CACHE=false');
-    putenv('APP_ENV=UNIT_TEST');
-    putenv('ATV_SERVICE=service');
-    putenv('ATV_MAX_PAGES=10');
-  }
+class AtvServiceTest extends AtvKernelTestBase {
 
   /**
    * Format application number based by the enviroment in old format.
