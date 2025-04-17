@@ -144,7 +144,7 @@ final class AtvDocument implements \JsonSerializable {
    *
    * @var string
    */
-  protected ?string $deleteAfter;
+  protected ?string $deleteAfter = NULL;
 
   /**
    * Url for content schema.
