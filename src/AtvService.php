@@ -188,7 +188,7 @@ class AtvService {
    * @throws AtvAuthFailedException
    * @throws \Drupal\helfi_helsinki_profiili\TokenExpiredException
    */
-  private function setAuthHeaders(bool $useApiKey = FALSE, string $token = NULL): void {
+  private function setAuthHeaders(bool $useApiKey = FALSE, ?string $token = NULL): void {
     // If apikey usage is forced, use it.
     if ($useApiKey) {
       $this->headers = [
@@ -1235,7 +1235,7 @@ class AtvService {
    * @throws \GuzzleHttp\Exception\GuzzleException
    * @throws \Drupal\helfi_helsinki_profiili\TokenExpiredException
    */
-  public function getGdprData(string $userId, string $token = NULL): AtvDocument|bool|array|FileInterface {
+  public function getGdprData(string $userId, ?string $token = NULL): AtvDocument|bool|array|FileInterface {
     $useApiKey = TRUE;
     return $this->doRequest(
       'GET',
@@ -1264,7 +1264,7 @@ class AtvService {
    * @throws \GuzzleHttp\Exception\GuzzleException
    * @throws \Drupal\helfi_helsinki_profiili\TokenExpiredException
    */
-  public function deleteGdprData(string $userId, string $token = NULL): AtvDocument|bool|array|FileInterface {
+  public function deleteGdprData(string $userId, ?string $token = NULL): AtvDocument|bool|array|FileInterface {
     $useApiKey = TRUE;
     return $this->doRequest(
       'DELETE',
