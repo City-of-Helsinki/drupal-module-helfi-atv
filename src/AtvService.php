@@ -7,6 +7,7 @@ use Drupal\Component\Utility\Xss;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Entity\EntityStorageException;
+use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
@@ -943,7 +944,7 @@ class AtvService {
         $file = $this->fileRepository->writeData(
           $resp->getBody()->getContents(),
           'private://grants_profile/' . $filename,
-          FileSystemInterface::EXISTS_REPLACE
+          FileExists::Replace,
         );
       }
       catch (EntityStorageException $e) {
@@ -966,7 +967,6 @@ class AtvService {
       }
     }
 
-    /** @var \GuzzleHttp\Psr7\Response */
     $bodyContents['response'] = $resp;
     if (isset($bodyContents['count']) && $bodyContents['count'] !== count($bodyContents['results'])) {
       $bodyContents['results'] = array_merge($bodyContents['results'] ?? [], $prevRes);

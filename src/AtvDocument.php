@@ -487,7 +487,7 @@ final class AtvDocument implements \JsonSerializable {
   /**
    * Get document status.
    *
-   * @return string
+   * @return array
    *   Document status
    */
   public function getStatusArray(): array {
