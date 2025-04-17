@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\helfi_atv_audit_logging\EventSubscriber;
 
 use Drupal\helfi_atv\Event\AtvServiceExceptionEvent;
