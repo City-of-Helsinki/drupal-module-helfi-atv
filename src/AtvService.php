@@ -8,10 +8,9 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\File\FileSystemInterface;
-use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
-use Drupal\file\FileRepository;
+use Drupal\file\FileRepositoryInterface;
 use Drupal\helfi_atv\Event\AtvServiceExceptionEvent;
 use Drupal\helfi_atv\Event\AtvServiceOperationEvent;
 use Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData;
@@ -20,19 +19,14 @@ use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\Psr7\Utils;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * Communicate with ATV.
  */
 class AtvService {
-
-  /**
-   * The HTTP client.
-   *
-   * @var \GuzzleHttp\ClientInterface
-   */
-  protected ClientInterface $httpClient;
 
   /**
    * Headers for requests.
@@ -47,20 +41,6 @@ class AtvService {
    * @var string
    */
   protected string $baseUrl;
-
-  /**
-   * Logger.
-   *
-   * @var \Drupal\Core\Logger\LoggerChannelFactory
-   */
-  protected $logger;
-
-  /**
-   * Access to file system.
-   *
-   * @var \Drupal\file\FileRepository
-   */
-  protected FileRepository $fileRepository;
 
   /**
    * Do we use caching or not?
@@ -89,13 +69,6 @@ class AtvService {
    * @var string
    */
   protected string $atvServiceName;
-
-  /**
-   * Helsinki profiili data.
-   *
-   * @var \Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData
-   */
-  protected HelsinkiProfiiliUserData $helsinkiProfiiliUserData;
 
   /**
    * Debug status.
@@ -140,41 +113,24 @@ class AtvService {
   protected int $callCount;
 
   /**
-   * The event dispatcher service.
-   *
-   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
-   */
-  protected EventDispatcherInterface $eventDispatcher;
-
-  /**
-   * File system.
-   *
-   * @var \Drupal\Core\File\FileSystemInterface
-   */
-  protected FileSystemInterface $fileSystem;
-
-  /**
    * Module configuration.
    *
    * @var \Drupal\Core\Config\ImmutableConfig
    */
   protected ImmutableConfig $config;
-  /**
-   * File system.
-   */
 
   /**
    * Constructs an AtvService object.
    *
-   * @param \GuzzleHttp\ClientInterface $http_client
+   * @param \GuzzleHttp\ClientInterface $httpClient
    *   The HTTP client.
-   * @param \Drupal\Core\Logger\LoggerChannelFactory $loggerFactory
+   * @param \Psr\Log\LoggerInterface $logger
    *   Logger factory.
-   * @param \Drupal\file\FileRepository $fileRepository
+   * @param \Drupal\file\FileRepositoryInterface $fileRepository
    *   Access to filesystem.
    * @param \Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData $helsinkiProfiiliUserData
    *   Helsinkiprofiili.
-   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $eventDispatcher
+   * @param \Psr\EventDispatcher\EventDispatcherInterface $eventDispatcher
    *   Event dispatcher.
    * @param \Drupal\Core\File\FileSystemInterface $fileSystem
    *   File system.
@@ -182,18 +138,16 @@ class AtvService {
    *   Config factory.
    */
   public function __construct(
-    ClientInterface $http_client,
-    LoggerChannelFactoryInterface $loggerFactory,
-    FileRepository $fileRepository,
-    HelsinkiProfiiliUserData $helsinkiProfiiliUserData,
-    EventDispatcherInterface $eventDispatcher,
-    FileSystemInterface $fileSystem,
+    protected ClientInterface $httpClient,
+    #[Autowire(service: 'logger.channel.helfi_atv')]
+    protected LoggerInterface $logger,
+    protected FileRepositoryInterface $fileRepository,
+    #[Autowire(service: 'helfi_helsinki_profiili.userdata')]
+    protected HelsinkiProfiiliUserData $helsinkiProfiiliUserData,
+    protected EventDispatcherInterface $eventDispatcher,
+    protected FileSystemInterface $fileSystem,
     ConfigFactoryInterface $configFactory,
   ) {
-    $this->httpClient = $http_client;
-    $this->logger = $loggerFactory->get('helfi_atv');
-    $this->eventDispatcher = $eventDispatcher;
-
     $this->baseUrl = getenv('ATV_BASE_URL');
     $this->atvVersion = getenv('ATV_VERSION');
     $this->useCache = getenv('ATV_USE_CACHE');
@@ -201,20 +155,11 @@ class AtvService {
     $this->appEnvironment = getenv('APP_ENV');
     $this->atvServiceName = getenv('ATV_SERVICE');
 
-    $this->helsinkiProfiiliUserData = $helsinkiProfiiliUserData;
-
-    $this->fileRepository = $fileRepository;
-    $this->fileSystem = $fileSystem;
     $this->config = $configFactory->get('helfi_atv.settings');
 
     $debug = getenv('DEBUG');
 
-    if ($debug == 'true' || $debug === TRUE) {
-      $this->debug = TRUE;
-    }
-    else {
-      $this->debug = FALSE;
-    }
+    $this->debug = ($debug == 'true' || $debug === TRUE);
 
     $this->requestCache = [];
     $this->headers = [];
