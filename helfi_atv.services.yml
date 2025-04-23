@@ -1,12 +1,13 @@
 services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+
+  logger.channel.helfi_atv:
+    parent: logger.channel_base
+    arguments: [ 'helfi_atv' ]
+
   helfi_atv.atv_service:
     class: Drupal\helfi_atv\AtvService
-    arguments: [
-      '@http_client',
-      '@logger.factory',
-      '@file.repository',
-      '@helfi_helsinki_profiili.userdata',
-      '@event_dispatcher',
-      '@file_system',
-      '@config.factory'
-    ]
+
+  Drupal\helfi_atv\AtvService: '@helfi_atv.atv_service'

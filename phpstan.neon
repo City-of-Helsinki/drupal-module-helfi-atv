@@ -1,12 +1,92 @@
 parameters:
-	fileExtensions:
-	    - php
-	    - module
-	    - install
-	paths:
-		- ./
-	excludePaths:
-		- vendor
-	level: 3
-	checkMissingIterableValueType: false
-	treatPhpDocTypesAsCertain: false
+  fileExtensions:
+    - php
+    - module
+    - install
+  paths:
+    - ./
+  excludePaths:
+    - vendor
+  level: 3
+  checkMissingIterableValueType: false
+  treatPhpDocTypesAsCertain: false
+  ignoreErrors:
+    -
+      message: "#^Method Psr\\\\EventDispatcher\\\\EventDispatcherInterface\\:\\:dispatch\\(\\) invoked with 2 parameters, 1 required\\.$#"
+      count: 2
+      path: src/AtvService.php
+
+    -
+      message: "#^Property Drupal\\\\helfi_atv\\\\AtvService\\:\\:\\$maxPages \\(int\\) does not accept string\\.$#"
+      count: 1
+      path: src/AtvService.php
+
+    -
+      message: "#^Property Drupal\\\\helfi_atv\\\\AtvService\\:\\:\\$resultsPerPage \\(int\\) does not accept string\\.$#"
+      count: 1
+      path: src/AtvService.php
+
+    -
+      message: "#^Variable \\$file might not be defined\\.$#"
+      count: 1
+      path: src/AtvService.php
+
+    -
+      message: "#^Variable \\$file on left side of \\?\\? always exists and is not nullable\\.$#"
+      count: 1
+      path: src/AtvService.php
+
+    -
+      message: "#^PHPDoc tag @param for parameter \\$event with type Drupal\\\\helfi_atv\\\\Event\\\\AtvServiceEOperationEvent is not subtype of native type Drupal\\\\helfi_atv\\\\Event\\\\AtvServiceOperationEvent\\.$#"
+      count: 1
+      path: tests/modules/helfi_atv_test/src/EventSubscriber/AtvEventSubscriber.php
+
+    -
+      message: "#^Parameter \\$event of method Drupal\\\\helfi_atv_test\\\\EventSubscriber\\\\AtvEventSubscriber\\:\\:onOperation\\(\\) has invalid type Drupal\\\\helfi_atv\\\\Event\\\\AtvServiceEOperationEvent\\.$#"
+      count: 1
+      path: tests/modules/helfi_atv_test/src/EventSubscriber/AtvEventSubscriber.php
+
+    -
+      message: "#^Function Exception not found\\.$#"
+      count: 3
+      path: tests/modules/helfi_atv_test/src/HelfiAtvTestServiceProvider.php
+
+    -
+      message: "#^Parameter \\$response of method Drupal\\\\helfi_atv_test\\\\MockClientFactory\\:\\:addResponse\\(\\) has invalid type Drupal\\\\helfi_atv_test\\\\Response\\.$#"
+      count: 1
+      path: tests/modules/helfi_atv_test/src/MockClientFactory.php
+
+    -
+      message: "#^Parameter \\$response of method Drupal\\\\helfi_atv_test\\\\MockClientFactory\\:\\:addResponse\\(\\) has invalid type Drupal\\\\helfi_atv_test\\\\ResponseException\\.$#"
+      count: 1
+      path: tests/modules/helfi_atv_test/src/MockClientFactory.php
+
+    -
+      message: "#^Call to an undefined method Drupal\\\\Core\\\\Http\\\\ClientFactory\\:\\:addResponse\\(\\)\\.$#"
+      count: 15
+      path: tests/src/Kernel/AtvServiceHeaderTest.php
+
+    -
+      message: "#^Call to an undefined method Drupal\\\\Core\\\\Http\\\\ClientFactory\\:\\:getHeaders\\(\\)\\.$#"
+      count: 15
+      path: tests/src/Kernel/AtvServiceHeaderTest.php
+
+    -
+      message: "#^Call to an undefined method Drupal\\\\Core\\\\Http\\\\ClientFactory\\:\\:addResponse\\(\\)\\.$#"
+      count: 12
+      path: tests/src/Kernel/AtvServiceTest.php
+
+    -
+      message: "#^Call to an undefined method Drupal\\\\Core\\\\Http\\\\ClientFactory\\:\\:getRequestUrl\\(\\)\\.$#"
+      count: 1
+      path: tests/src/Kernel/AtvServiceTest.php
+
+    -
+      message: "#^Call to an undefined method Drupal\\\\Core\\\\Http\\\\ClientFactory\\:\\:addResponse\\(\\)\\.$#"
+      count: 2
+      path: tests/src/Kernel/RequestTest.php
+
+    -
+      message: "#^Call to an undefined method Drupal\\\\Core\\\\Http\\\\ClientFactory\\:\\:getRequest\\(\\)\\.$#"
+      count: 2
+      path: tests/src/Kernel/RequestTest.php

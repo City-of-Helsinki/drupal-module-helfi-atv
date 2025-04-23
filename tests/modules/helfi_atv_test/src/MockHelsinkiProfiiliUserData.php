@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\helfi_atv_test;
 
 use Drupal\helfi_helsinki_profiili\HelsinkiProfiiliUserData;

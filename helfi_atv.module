@@ -3,11 +3,9 @@
 /**
  * @file
  * Primary module hooks for helfi_atv module.
- *
- * @DCG
- * This file is no longer required in Drupal 8.
- * @see https://www.drupal.org/node/2217931
  */
+
+declare(strict_types=1);
 
 use Drupal\Core\Session\AccountProxyInterface;
 
