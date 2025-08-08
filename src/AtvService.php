@@ -121,13 +121,6 @@ class AtvService {
   protected ImmutableConfig $config;
 
   /**
-   * Request timeout.
-   *
-   * @var float
-   */
-  protected float $timeout;
-
-  /**
    * Constructs an AtvService object.
    *
    * @param \GuzzleHttp\ClientInterface $httpClient
@@ -164,7 +157,6 @@ class AtvService {
     $this->atvServiceName = getenv('ATV_SERVICE');
 
     $this->config = $configFactory->get('helfi_atv.settings');
-    $this->timeout = $this->config->get('timeout') ?? 10;
 
     $debug = getenv('DEBUG');
 
@@ -1022,7 +1014,7 @@ class AtvService {
     bool $apiKeyAuth = FALSE,
   ): array|AtvDocument|bool|FileInterface {
     try {
-      $options['timeout'] = $this->timeout;
+      $options['timeout'] = $this->config->get('timeout') ?? 10;
       if ($apiKeyAuth) {
         // Set headers from configs.
         $this->setAuthHeaders(TRUE);
