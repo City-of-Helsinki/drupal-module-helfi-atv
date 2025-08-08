@@ -1014,6 +1014,7 @@ class AtvService {
     bool $apiKeyAuth = FALSE,
   ): array|AtvDocument|bool|FileInterface {
     try {
+      $options['timeout'] = $this->config->get('timeout') ?? 10;
       if ($apiKeyAuth) {
         // Set headers from configs.
         $this->setAuthHeaders(TRUE);
