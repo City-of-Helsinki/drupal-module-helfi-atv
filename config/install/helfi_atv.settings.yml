@@ -2,3 +2,4 @@ roles:
   hp_user_roles:
     - 'helsinkiprofiili'
   admin_user_roles: []
+timeout: 10
