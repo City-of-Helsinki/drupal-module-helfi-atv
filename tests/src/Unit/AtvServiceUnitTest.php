@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\helfi_atv\Unit;
 
 use Drupal\helfi_atv\AtvService;
