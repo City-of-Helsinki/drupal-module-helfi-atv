@@ -17,4 +17,6 @@ helfi_atv.settings:
           sequence:
             type: string
             label: 'Admin user role'
-
+    timeout:
+      type: float
+      label: 'Request timeout'
